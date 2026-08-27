@@ -1,0 +1,23 @@
+package com.rentnest.service;
+
+import com.rentnest.dto.request.VisitScheduleRequest;
+import com.rentnest.dto.response.VisitResponse;
+import com.rentnest.entity.VisitSchedule;
+
+import java.util.List;
+
+public interface VisitService {
+
+    VisitResponse scheduleVisit(VisitScheduleRequest request, Long userId);
+
+    /** Visits the caller has requested, newest first. */
+    List<VisitResponse> getUserVisits(Long userId);
+
+    /** Visit requests raised against listings the caller owns. */
+    List<VisitResponse> getOwnerVisits(Long ownerId, boolean pendingOnly);
+
+    VisitResponse updateVisitStatus(Long visitId, VisitSchedule.VisitStatus status, Long ownerId);
+
+    /** Lets a requester withdraw their own pending request. */
+    void cancelVisit(Long visitId, Long userId);
+}

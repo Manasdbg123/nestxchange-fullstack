@@ -1,0 +1,24 @@
+# ---------------------------------------------------------------------------
+# Development profile: verbose SQL, schema auto-update, sample data seeding.
+# ---------------------------------------------------------------------------
+spring:
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+
+app:
+  jwt:
+    # Dev-only fallback so `mvnw spring-boot:run` works out of the box.
+    # JwtTokenProvider rejects this value under any other profile.
+    secret: ${JWT_SECRET:dev-only-insecure-key-please-set-JWT_SECRET-in-your-env-file-0123456789abcdef}
+  seed:
+    enabled: ${SEED_ENABLED:true}
+    admin-password: ${SEED_ADMIN_PASSWORD:devpassword123}
+
+logging:
+  level:
+    com.rentnest: DEBUG

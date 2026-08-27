@@ -1,0 +1,14 @@
+.git
+.github
+.idea
+.vscode
+target
+logs
+*.log
+.env
+.env.*
+!.env.example
+rentnest-frontend/node_modules
+rentnest-frontend/dist
+README.md
+docs
