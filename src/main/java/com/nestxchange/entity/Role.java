@@ -11,10 +11,10 @@ package com.nestxchange.entity;
  */
 public enum Role {
 
-    /** Someone looking for a place to rent. Default for new sign-ups. */
+    /** Someone looking to rent or buy a property or vehicle. Default for new sign-ups. */
     TENANT,
 
-    /** Someone whose primary intent is listing property. */
+    /** Someone whose primary intent is listing a property or vehicle. */
     OWNER,
 
     /** Legacy value retained so accounts created before roles were split still load. */

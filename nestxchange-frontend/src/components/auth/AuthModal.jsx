@@ -101,8 +101,8 @@ export default function AuthModal() {
                             <legend className="label">I am here to</legend>
                             <div className="grid grid-cols-2 gap-3">
                                 {[
-                                    { value: 'TENANT', label: 'Find a home', icon: 'search' },
-                                    { value: 'OWNER', label: 'List my property', icon: 'building' },
+                                    { value: 'TENANT', label: 'Find a property or vehicle', icon: 'search' },
+                                    { value: 'OWNER', label: 'List a property or vehicle', icon: 'tag' },
                                 ].map((option) => (
                                     <label
                                         key={option.value}
