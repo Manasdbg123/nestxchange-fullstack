@@ -25,7 +25,9 @@ export default function Navbar() {
 
     const [menuOpen, setMenuOpen] = useState(false);
     const [accountOpen, setAccountOpen] = useState(false);
+    const [postOpen, setPostOpen] = useState(false);
     const accountRef = useRef(null);
+    const postRef = useRef(null);
 
     // Close the account dropdown on an outside click or Escape.
     useEffect(() => {
@@ -46,6 +48,25 @@ export default function Navbar() {
         };
     }, [accountOpen]);
 
+    // Close the "Post a listing" dropdown on an outside click or Escape.
+    useEffect(() => {
+        if (!postOpen) return undefined;
+
+        const onPointerDown = (event) => {
+            if (!postRef.current?.contains(event.target)) setPostOpen(false);
+        };
+        const onKeyDown = (event) => {
+            if (event.key === 'Escape') setPostOpen(false);
+        };
+
+        document.addEventListener('mousedown', onPointerDown);
+        document.addEventListener('keydown', onKeyDown);
+        return () => {
+            document.removeEventListener('mousedown', onPointerDown);
+            document.removeEventListener('keydown', onKeyDown);
+        };
+    }, [postOpen]);
+
     const handleSignOut = () => {
         logout();
         setAccountOpen(false);
@@ -53,14 +74,16 @@ export default function Navbar() {
         navigate('/');
     };
 
-    const handlePostProperty = () => {
+    const handlePostListing = (category) => {
         setMenuOpen(false);
+        setPostOpen(false);
+        const destination = `/create-listing?category=${category}`;
         if (isAuthenticated) {
-            navigate('/post-property');
+            navigate(destination);
         } else {
             requireAuth({
-                reason: 'Sign in to post your property for free',
-                onSuccess: () => navigate('/post-property'),
+                reason: category === 'VEHICLE' ? 'Sign in to post your vehicle for free' : 'Sign in to post your property for free',
+                onSuccess: () => navigate(destination),
             });
         }
     };
@@ -104,10 +127,45 @@ export default function Navbar() {
                         <Icon name={isDark ? 'sun' : 'moon'} className="h-5 w-5" />
                     </button>
 
-                    <button type="button" onClick={handlePostProperty} className="btn-outline btn-sm hidden sm:inline-flex">
-                        <Icon name="plus" className="h-4 w-4" strokeWidth={2.5} />
-                        Post property free
-                    </button>
+                    <div className="relative hidden sm:block" ref={postRef}>
+                        <button
+                            type="button"
+                            onClick={() => setPostOpen((open) => !open)}
+                            className="btn-outline btn-sm"
+                            aria-expanded={postOpen}
+                            aria-haspopup="menu"
+                        >
+                            <Icon name="plus" className="h-4 w-4" strokeWidth={2.5} />
+                            Post a listing free
+                            <Icon name="chevronDown" className="h-3.5 w-3.5" strokeWidth={2.5} />
+                        </button>
+
+                        {postOpen ? (
+                            <div
+                                role="menu"
+                                className="animate-fade-in absolute right-0 mt-2 w-52 overflow-hidden rounded-xl border border-ink-200 bg-white shadow-lift dark:border-ink-700 dark:bg-ink-900"
+                            >
+                                <button
+                                    type="button"
+                                    role="menuitem"
+                                    onClick={() => handlePostListing('PROPERTY')}
+                                    className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-medium text-ink-700 transition-colors hover:bg-ink-50 dark:text-ink-200 dark:hover:bg-ink-800"
+                                >
+                                    <Icon name="building" className="h-4 w-4" />
+                                    Post a property
+                                </button>
+                                <button
+                                    type="button"
+                                    role="menuitem"
+                                    onClick={() => handlePostListing('VEHICLE')}
+                                    className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-medium text-ink-700 transition-colors hover:bg-ink-50 dark:text-ink-200 dark:hover:bg-ink-800"
+                                >
+                                    <Icon name="car" className="h-4 w-4" />
+                                    Post a vehicle
+                                </button>
+                            </div>
+                        ) : null}
+                    </div>
 
                     {isAuthenticated ? (
                         <div className="relative" ref={accountRef}>
@@ -214,10 +272,17 @@ export default function Navbar() {
                         ))}
                         <button
                             type="button"
-                            onClick={handlePostProperty}
+                            onClick={() => handlePostListing('PROPERTY')}
                             className="mt-1 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-brand-600 hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-brand-900/30"
                         >
-                            Post property free
+                            Post a property free
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handlePostListing('VEHICLE')}
+                            className="rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-brand-600 hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-brand-900/30"
+                        >
+                            Post a vehicle free
                         </button>
                     </div>
                 </div>
