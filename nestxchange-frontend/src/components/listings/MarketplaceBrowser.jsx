@@ -71,52 +71,54 @@ export default function MarketplaceBrowser({ lockedCategory = null, emptyStateDe
         [filters, setSearchParams, lockedCategory],
     );
 
-    const clearCategoryAndMode = () => applyFilters({ ...filters, category: '', mode: '', attributes: {} });
-
     return (
         <div className="bg-ink-50 pb-12 dark:bg-ink-950">
             <div className="border-b border-ink-200 bg-white dark:border-ink-800 dark:bg-ink-900">
                 <div className="container-page py-5">
-                    <div className="flex flex-wrap items-center gap-2">
-                        {/* Only the fully generic /search page lets you clear or
-                            switch category - the dedicated marketplace pages are
-                            always that one category, by design. */}
-                        {!lockedCategory && (filters.category || filters.mode) ? (
-                            <span className="chip chip-active">
-                                {[
-                                    LISTING_CATEGORIES.find((c) => c.value === filters.category)?.label,
-                                    BROWSE_MODES.find((m) => m.value === filters.mode)?.label,
-                                ]
-                                    .filter(Boolean)
-                                    .join(' · ')}
+                    {/* Only the fully generic /search page lets you switch
+                        category - the dedicated marketplace pages are always
+                        that one category, by design. "All" (an empty category
+                        filter) is its own explicit option so it's clear this is
+                        a three-way choice, not just two categories you can turn
+                        on. */}
+                    {!lockedCategory ? (
+                        <div
+                            role="group"
+                            aria-label="Filter by category"
+                            className="mb-3 inline-flex rounded-xl border border-ink-200 bg-ink-50 p-1 dark:border-ink-700 dark:bg-ink-800/60"
+                        >
+                            <button
+                                type="button"
+                                onClick={() => applyFilters({ ...filters, category: '', attributes: {} })}
+                                aria-pressed={!filters.category}
+                                className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-sm font-semibold transition-colors ${
+                                    !filters.category
+                                        ? 'bg-white text-ink-900 shadow-sm dark:bg-ink-900 dark:text-ink-50'
+                                        : 'text-ink-500 hover:text-ink-800 dark:text-ink-400 dark:hover:text-ink-100'
+                                }`}
+                            >
+                                All
+                            </button>
+                            {LISTING_CATEGORIES.map((entry) => (
                                 <button
+                                    key={entry.value}
                                     type="button"
-                                    onClick={clearCategoryAndMode}
-                                    aria-label="Clear category and mode filter"
-                                    className="ml-1.5"
+                                    onClick={() => applyFilters({ ...filters, category: entry.value, attributes: {} })}
+                                    aria-pressed={filters.category === entry.value}
+                                    className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-sm font-semibold transition-colors ${
+                                        filters.category === entry.value
+                                            ? 'bg-white text-ink-900 shadow-sm dark:bg-ink-900 dark:text-ink-50'
+                                            : 'text-ink-500 hover:text-ink-800 dark:text-ink-400 dark:hover:text-ink-100'
+                                    }`}
                                 >
-                                    <Icon name="close" className="h-3 w-3" strokeWidth={2.5} />
+                                    <Icon name={entry.icon} className="h-3.5 w-3.5" strokeWidth={2} />
+                                    {entry.label}
                                 </button>
-                            </span>
-                        ) : null}
+                            ))}
+                        </div>
+                    ) : null}
 
-                        {!lockedCategory
-                            ? LISTING_CATEGORIES.map((entry) => (
-                                  <button
-                                      key={entry.value}
-                                      type="button"
-                                      onClick={() =>
-                                          applyFilters({ ...filters, category: entry.value, attributes: {} })
-                                      }
-                                      aria-pressed={filters.category === entry.value}
-                                      className={`chip ${filters.category === entry.value ? 'chip-active' : ''}`}
-                                  >
-                                      <Icon name={entry.icon} className="h-3.5 w-3.5" strokeWidth={2} />
-                                      {entry.label}
-                                  </button>
-                              ))
-                            : null}
-
+                    <div className="flex flex-wrap items-center gap-2">
                         {BROWSE_MODES.map((entry) => (
                             <button
                                 key={entry.value}
