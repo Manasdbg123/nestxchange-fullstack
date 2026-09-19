@@ -34,6 +34,9 @@ const EditProperty = lazy(() => import('./pages/EditProperty'));
 const MyProperties = lazy(() => import('./pages/MyProperties'));
 const Shortlist = lazy(() => import('./pages/Shortlist'));
 const Visits = lazy(() => import('./pages/Visits'));
+const Contact = lazy(() => import('./pages/Contact'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const TermsOfUse = lazy(() => import('./pages/TermsOfUse'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 function RouteFallback() {
@@ -78,6 +81,9 @@ export default function App() {
                                 gated on the detail page itself. */}
                             <Route path="/property/:id" element={<PropertyDetails />} />
                             <Route path="/list-your-property" element={<ListYourProperty />} />
+                            <Route path="/contact" element={<Contact />} />
+                            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                            <Route path="/terms-of-use" element={<TermsOfUse />} />
 
                             {/* Requires an account */}
                             <Route

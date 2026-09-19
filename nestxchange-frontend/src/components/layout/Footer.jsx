@@ -45,8 +45,8 @@ export default function Footer() {
                         </p>
                         <div className="mt-5 flex items-center gap-2 text-sm text-ink-500 dark:text-ink-400">
                             <Icon name="mail" className="h-4 w-4" />
-                            <a href="mailto:hello@nestxchange.example" className="link-quiet">
-                                hello@nestxchange.example
+                            <a href="mailto:kaustuk2003@gmail.com" className="link-quiet">
+                                kaustuk2003@gmail.com
                             </a>
                         </div>
                     </div>
@@ -79,9 +79,15 @@ export default function Footer() {
                 <div className="mt-10 flex flex-col gap-4 border-t border-ink-200 pt-6 text-xs text-ink-500 sm:flex-row sm:items-center sm:justify-between dark:border-ink-800 dark:text-ink-400">
                     <p>© {new Date().getFullYear()} NestXchange. A portfolio project, not a live marketplace.</p>
                     <div className="flex flex-wrap gap-5">
-                        <span>Terms of use</span>
-                        <span>Privacy policy</span>
-                        <span>Contact</span>
+                        <Link to="/terms-of-use" className="link-quiet">
+                            Terms of use
+                        </Link>
+                        <Link to="/privacy-policy" className="link-quiet">
+                            Privacy policy
+                        </Link>
+                        <Link to="/contact" className="link-quiet">
+                            Contact
+                        </Link>
                     </div>
                 </div>
             </div>
