@@ -7,9 +7,8 @@ import { useAuth } from '../../context/contexts';
 import { useTheme } from '../../context/contexts';
 
 const NAV_LINKS = [
-    { to: '/search', label: 'Browse' },
-    { to: '/create-listing', label: 'Sell or list' },
-    { to: '/list-your-property', label: 'For owners' },
+    { to: '/properties', label: 'Property & Homes' },
+    { to: '/vehicles', label: 'Vehicles' },
 ];
 
 /**
@@ -143,8 +142,11 @@ export default function Navbar() {
                                         <p className="truncate text-xs text-ink-500 dark:text-ink-400">{user?.email}</p>
                                     </div>
 
-                                    <MenuLink to="/my-properties" icon="building" onSelect={() => setAccountOpen(false)}>
+                                    <MenuLink to="/my-listings" icon="tag" onSelect={() => setAccountOpen(false)}>
                                         My listings
+                                    </MenuLink>
+                                    <MenuLink to="/my-properties" icon="building" onSelect={() => setAccountOpen(false)}>
+                                        My properties (with photos)
                                     </MenuLink>
                                     <MenuLink to="/shortlist" icon="heart" onSelect={() => setAccountOpen(false)}>
                                         Shortlist

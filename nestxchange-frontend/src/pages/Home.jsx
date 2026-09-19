@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import CategoryModeSelector from '../components/listings/CategoryModeSelector';
 import {
     BrowseLinks,
     CtaBanner,
     Faq,
     HowItWorks,
+    MarketplaceChoiceCards,
     SectionHeading,
     StatStrip,
     Testimonials,
@@ -18,7 +18,7 @@ import Icon from '../components/ui/Icon';
 import usePageMeta from '../hooks/usePageMeta';
 import useFavorites from '../hooks/useFavorites';
 import { propertyApi } from '../api/endpoints';
-import { LISTING_CATEGORIES, LISTING_MODES } from '../lib/constants';
+import { BROWSE_MODES } from '../lib/constants';
 
 /**
  * The marketing home page.
@@ -29,9 +29,9 @@ import { LISTING_CATEGORIES, LISTING_MODES } from '../lib/constants';
  */
 export default function Home() {
     usePageMeta({
-        title: 'Rent homes directly from owners, zero brokerage',
+        title: 'Find your next place. Discover your next drive.',
         description:
-            'Browse verified flats, houses, PGs and commercial spaces across India. Talk to owners directly and pay no brokerage.',
+            'Explore homes and vehicles to rent or buy, all in one trusted marketplace. Talk to owners directly and pay no brokerage.',
     });
 
     const { isFavorited, toggleFavorite } = useFavorites();
@@ -73,55 +73,52 @@ export default function Home() {
                     className="pointer-events-none absolute -bottom-32 left-1/4 h-80 w-80 rounded-full bg-accent-500/20 blur-3xl"
                 />
 
-                <div className="container-page relative py-20 sm:py-28">
-                    <div className="flex flex-col items-start gap-10 lg:flex-row lg:items-center lg:justify-between">
-                        <div className="max-w-xl">
-                            <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-xs font-semibold text-white">
-                                <Icon name="wallet" className="h-3.5 w-3.5" strokeWidth={2.5} />
-                                Zero brokerage, always
-                            </span>
+                <div className="container-page relative py-16 sm:py-24">
+                    <div className="mx-auto max-w-2xl text-center">
+                        <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-xs font-semibold text-white">
+                            <Icon name="wallet" className="h-3.5 w-3.5" strokeWidth={2.5} />
+                            Zero brokerage, always
+                        </span>
 
-                            <h1 className="mt-6 font-display text-4xl font-extrabold leading-tight text-white sm:text-5xl">
-                                Property and vehicles
-                                <span className="block text-brand-300">rent, buy or sell - one place</span>
-                            </h1>
+                        <h1 className="mt-6 font-display text-4xl font-extrabold leading-tight text-white sm:text-5xl">
+                            Find your next place.
+                            <span className="block text-brand-300">Discover your next drive.</span>
+                        </h1>
 
-                            <p className="mt-5 text-lg leading-relaxed text-ink-300">
-                                No agents in the middle, no brokerage lost to a broker. Search verified
-                                listings, talk to owners directly, and close the deal on your own terms.
-                            </p>
-
-                            <div className="mt-8 flex flex-wrap gap-3">
-                                <Link
-                                    to="/list-your-property"
-                                    className="btn btn-lg border border-white/25 text-white hover:bg-white/10"
-                                >
-                                    Property owner? List for free
-                                </Link>
-                            </div>
-                        </div>
-
-                        <div className="w-full lg:max-w-xl">
-                            <CategoryModeSelector />
-                        </div>
+                        <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-ink-300">
+                            Explore homes and vehicles to rent or buy, all in one trusted marketplace.
+                            Talk to owners directly - no agents, no brokerage.
+                        </p>
                     </div>
-                </div>
-            </section>
 
-            {/* ------------------------------------------------------- Category */}
-            <section className="border-b border-ink-200 bg-white dark:border-ink-800 dark:bg-ink-950">
-                <div className="container-page flex gap-3 overflow-x-auto py-5 hide-scrollbar">
-                    {LISTING_CATEGORIES.flatMap((category) =>
-                        LISTING_MODES.map((mode) => (
-                            <Link
-                                key={`${category.value}-${mode.value}`}
-                                to={`/search?category=${category.value}&mode=${mode.value}`}
-                                className="chip shrink-0"
-                            >
-                                {category.label} to {mode.label.toLowerCase()}
-                            </Link>
-                        )),
-                    )}
+                    {/* The two marketplaces, equally weighted - this is the whole
+                        point of the homepage. Everything else on this page is
+                        secondary to picking one of these. */}
+                    <div className="mx-auto mt-12 max-w-4xl">
+                        <MarketplaceChoiceCards
+                            choices={[
+                                {
+                                    to: '/properties',
+                                    icon: 'building',
+                                    title: 'Property & Homes',
+                                    description:
+                                        'Find your next home, explore properties for sale, or rent out your space.',
+                                    cta: 'Explore Properties',
+                                    image:
+                                        'https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&q=80&w=1000',
+                                },
+                                {
+                                    to: '/vehicles',
+                                    icon: 'car',
+                                    title: 'Vehicles',
+                                    description: 'Discover cars, bikes, and more for rent or purchase.',
+                                    cta: 'Explore Vehicles',
+                                    image:
+                                        'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=1000',
+                                },
+                            ]}
+                        />
+                    </div>
                 </div>
             </section>
 
@@ -310,12 +307,16 @@ export default function Home() {
                                 to: `/search?location=${encodeURIComponent(city)}`,
                             }),
                         )}
-                        types={LISTING_CATEGORIES.flatMap((category) =>
-                            LISTING_MODES.map((mode) => ({
-                                label: `${category.label} to ${mode.label.toLowerCase()}`,
-                                to: `/search?category=${category.value}&mode=${mode.value}`,
+                        types={[
+                            ...BROWSE_MODES.map((mode) => ({
+                                label: `Property to ${mode.label.toLowerCase()}`,
+                                to: `/properties?mode=${mode.value}`,
                             })),
-                        )}
+                            ...BROWSE_MODES.map((mode) => ({
+                                label: `Vehicles to ${mode.label.toLowerCase()}`,
+                                to: `/vehicles?mode=${mode.value}`,
+                            })),
+                        ]}
                     />
                 </div>
             </section>

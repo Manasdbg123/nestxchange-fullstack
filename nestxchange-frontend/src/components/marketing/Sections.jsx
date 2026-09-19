@@ -31,6 +31,55 @@ export function SectionHeading({ eyebrow, title, description, align = 'center' }
     );
 }
 
+/**
+ * The homepage's two big marketplace entry points - Property & Homes and
+ * Vehicles. This is deliberately the most prominent thing on the page: the
+ * whole product is two separate marketplace experiences sharing one engine,
+ * and the entry point has to say that immediately, not bury it under a
+ * generic search box.
+ */
+export function MarketplaceChoiceCards({ choices }) {
+    return (
+        <div className="grid gap-5 sm:grid-cols-2">
+            {choices.map((choice) => (
+                <Link
+                    key={choice.to}
+                    to={choice.to}
+                    className="group relative flex flex-col overflow-hidden rounded-2xl shadow-lift transition-transform duration-300 hover:-translate-y-1"
+                >
+                    <div className="relative h-56 w-full overflow-hidden sm:h-64">
+                        <img
+                            src={choice.image}
+                            alt=""
+                            loading="lazy"
+                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-ink-950/90 via-ink-950/30 to-transparent" />
+                    </div>
+
+                    <div className="absolute inset-x-0 bottom-0 p-6">
+                        <span className="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white/15 text-white backdrop-blur">
+                            <Icon name={choice.icon} className="h-4.5 w-4.5" strokeWidth={2} />
+                        </span>
+                        <h3 className="font-display text-2xl font-extrabold text-white">{choice.title}</h3>
+                        <p className="mt-1.5 max-w-sm text-sm leading-relaxed text-white/80">
+                            {choice.description}
+                        </p>
+                        <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-white">
+                            {choice.cta}
+                            <Icon
+                                name="arrowRight"
+                                className="h-4 w-4 transition-transform group-hover:translate-x-1"
+                                strokeWidth={2.5}
+                            />
+                        </span>
+                    </div>
+                </Link>
+            ))}
+        </div>
+    );
+}
+
 export function ValueProps({ items }) {
     return (
         <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

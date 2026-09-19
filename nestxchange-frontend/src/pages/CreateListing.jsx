@@ -7,7 +7,7 @@ import usePageMeta from '../hooks/usePageMeta';
 import { useToast } from '../context/contexts';
 import { listingApi } from '../api/endpoints';
 import { toErrorMessage } from '../api/client';
-import { LISTING_CATEGORIES, LISTING_MODES } from '../lib/constants';
+import { CREATE_MODES, LISTING_CATEGORIES } from '../lib/constants';
 
 /**
  * The one "post a listing" page for every category and mode. What fields it
@@ -77,7 +77,7 @@ export default function CreateListing() {
                     />
                     <PickerGroup
                         label="Mode"
-                        options={LISTING_MODES}
+                        options={CREATE_MODES}
                         value={mode}
                         onChange={(next) => setSearchParams({ category, mode: next })}
                     />

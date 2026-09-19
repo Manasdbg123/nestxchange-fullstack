@@ -16,11 +16,14 @@ const CITIES = ['Bengaluru', 'Mumbai', 'Pune', 'Delhi', 'Hyderabad', 'Chennai'];
 // category/mode combinations, mirroring the landing page's selector - the
 // unified search page (/search) reads `category`/`mode`, not the old
 // property-only `type`/`furnishing` params these links used to carry.
+// mode=SELL, not BUY: that's the value a seller's listing is actually
+// created with, so it's what a buyer needs to search for. See
+// toBrowseModeValue in lib/constants.
 const CATEGORY_MODE_LINKS = [
-    { label: 'Property to rent', params: 'category=PROPERTY&mode=RENT' },
-    { label: 'Property to buy', params: 'category=PROPERTY&mode=BUY' },
-    { label: 'Vehicles to rent', params: 'category=VEHICLE&mode=RENT' },
-    { label: 'Vehicles to buy', params: 'category=VEHICLE&mode=BUY' },
+    { label: 'Property to rent', to: '/properties?mode=RENT' },
+    { label: 'Property to buy', to: '/properties?mode=SELL' },
+    { label: 'Vehicles to rent', to: '/vehicles?mode=RENT' },
+    { label: 'Vehicles to buy', to: '/vehicles?mode=SELL' },
 ];
 
 const COMPANY_LINKS = [
@@ -58,7 +61,7 @@ export default function Footer() {
 
                     <FooterColumn title="Browse by category">
                         {CATEGORY_MODE_LINKS.map((link) => (
-                            <FooterLink key={link.label} to={`/search?${link.params}`}>
+                            <FooterLink key={link.label} to={link.to}>
                                 {link.label}
                             </FooterLink>
                         ))}

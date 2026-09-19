@@ -130,6 +130,31 @@ export const LISTING_MODES = [
     { value: 'SELL', label: 'Sell', description: 'List something of yours' },
 ];
 
+/**
+ * `Listing.mode` has exactly one value per listing - a lister posts it as
+ * either RENT or SELL (never BUY: "I want to sell this in BUY mode" makes no
+ * sense). So a buyer browsing must search `mode=SELL` to find what sellers
+ * actually posted; "Buy" is a UI-only label over that same value. BUY exists
+ * as an enum value for symmetry with the landing selector's three buttons,
+ * but nothing ever creates or searches for it directly - see
+ * `toBrowseModeValue` below, which is the one place that translation happens.
+ */
+export function toBrowseModeValue(mode) {
+    return mode === 'BUY' ? 'SELL' : mode;
+}
+
+/** What a browsing visitor picks: Rent, or Buy (which searches mode=SELL). */
+export const BROWSE_MODES = [
+    { value: 'RENT', label: 'Rent' },
+    { value: 'SELL', label: 'Buy' },
+];
+
+/** What a lister picks when posting: renting out, or selling. Not "Buy". */
+export const CREATE_MODES = [
+    { value: 'RENT', label: 'For rent' },
+    { value: 'SELL', label: 'For sale' },
+];
+
 export const LISTING_STATUS_BADGES = {
     AVAILABLE: { label: 'Available', tone: 'success' },
     REQUESTED: { label: 'Requested', tone: 'warning' },

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import Icon from '../components/ui/Icon';
+import ListingCard from '../components/listings/ListingCard';
 import { Alert, Badge, EmptyState, Spinner } from '../components/ui/Primitives';
 import usePageMeta from '../hooks/usePageMeta';
 import useAsync from '../hooks/useAsync';
@@ -10,6 +11,29 @@ import { listingApi } from '../api/endpoints';
 import { toErrorMessage } from '../api/client';
 import { formatCurrency, formatDateTime, formatRelative, humanise } from '../lib/format';
 import { LISTING_CATEGORIES, LISTING_STATUS_BADGES } from '../lib/constants';
+
+/** Icons for the most common attribute keys across both schemas - falls back to a generic tag. */
+const ATTRIBUTE_ICONS = {
+    bedrooms: 'bed',
+    bathrooms: 'ruler',
+    sqft: 'ruler',
+    propertyType: 'building',
+    furnishing: 'sparkles',
+    amenities: 'shield',
+    make: 'car',
+    model: 'car',
+    year: 'calendar',
+    mileage: 'ruler',
+    fuelType: 'lightning',
+    transmission: 'car',
+};
+
+const PLACEHOLDER_IMAGE = {
+    PROPERTY: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=1200',
+    VEHICLE: 'https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&q=80&w=1200',
+};
+
+const BROWSE_ROUTE = { PROPERTY: '/properties', VEHICLE: '/vehicles' };
 
 /**
  * A single listing, plus the controls to drive it through
@@ -51,6 +75,19 @@ export default function ListingDetails() {
 
     const [firing, setFiring] = useState(false);
     const [transitionError, setTransitionError] = useState('');
+
+    const [similar, setSimilar] = useState(null);
+    useEffect(() => {
+        if (!listing) return;
+        let cancelled = false;
+        listingApi
+            .search({ category: listing.category }, { page: 0, size: 4 })
+            .then((result) => !cancelled && setSimilar(result.content.filter((entry) => entry.id !== listing.id)))
+            .catch(() => !cancelled && setSimilar([]));
+        return () => {
+            cancelled = true;
+        };
+    }, [listing]);
 
     const notFound = fetchError?.response?.status === 404;
     const error = fetchError && !notFound ? toErrorMessage(fetchError, 'We could not load this listing.') : '';
@@ -122,56 +159,80 @@ export default function ListingDetails() {
     return (
         <div className="bg-ink-50 py-10 dark:bg-ink-950">
             <div className="container-page max-w-3xl">
-                <Link to="/search" className="text-sm link-quiet">
-                    ← Back to search
+                <Link to={BROWSE_ROUTE[listing.category] ?? '/search'} className="text-sm link-quiet">
+                    ← Back to {categoryEntry?.label ?? 'search'}
                 </Link>
 
-                <div className="surface mt-4 p-6">
-                    <div className="flex flex-wrap items-center gap-2">
-                        <span className="chip chip-active">
-                            <Icon name={categoryEntry?.icon ?? 'tag'} className="h-3.5 w-3.5" strokeWidth={2} />
-                            {humanise(listing.category)}
-                        </span>
-                        <span className="chip chip-active">{humanise(listing.mode)}</span>
-                        {statusBadge ? <Badge tone={statusBadge.tone}>{statusBadge.label}</Badge> : null}
+                <div className="surface mt-4 overflow-hidden">
+                    <div className="relative h-56 w-full overflow-hidden bg-ink-100 sm:h-72 dark:bg-ink-800">
+                        <img
+                            src={PLACEHOLDER_IMAGE[listing.category] ?? PLACEHOLDER_IMAGE.PROPERTY}
+                            alt=""
+                            className="h-full w-full object-cover"
+                        />
                     </div>
 
-                    <h1 className="mt-4 font-display text-2xl font-extrabold text-ink-900 dark:text-ink-50">
-                        {listing.title}
-                    </h1>
-
-                    <p className="mt-1 flex items-center gap-1 text-sm text-ink-500 dark:text-ink-400">
-                        <Icon name="pin" className="h-4 w-4" />
-                        {listing.location}
-                    </p>
-
-                    <p className="mt-4 text-2xl font-extrabold text-brand-600 dark:text-brand-300">
-                        {formatCurrency(listing.price)}
-                        {listing.mode === 'RENT' ? <span className="text-sm font-medium text-ink-400">/mo</span> : null}
-                    </p>
-
-                    <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-ink-700 dark:text-ink-300">
-                        {listing.description}
-                    </p>
-
-                    {schema && Object.keys(listing.attributes ?? {}).length > 0 ? (
-                        <div className="mt-6 grid grid-cols-2 gap-4 border-t border-ink-100 pt-6 dark:border-ink-800 sm:grid-cols-3">
-                            {schema.fields
-                                .filter((field) => listing.attributes[field.key] !== undefined)
-                                .map((field) => (
-                                    <div key={field.key}>
-                                        <p className="text-xs font-semibold uppercase tracking-wide text-ink-400">
-                                            {field.label}
-                                        </p>
-                                        <p className="text-sm font-medium text-ink-900 dark:text-ink-50">
-                                            {formatAttributeValue(listing.attributes[field.key])}
-                                        </p>
-                                    </div>
-                                ))}
+                    <div className="p-6">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className="chip chip-active">
+                                <Icon name={categoryEntry?.icon ?? 'tag'} className="h-3.5 w-3.5" strokeWidth={2} />
+                                {humanise(listing.category)}
+                            </span>
+                            <span className="chip chip-active">{humanise(listing.mode)}</span>
+                            {statusBadge ? <Badge tone={statusBadge.tone}>{statusBadge.label}</Badge> : null}
                         </div>
-                    ) : null}
 
-                    <p className="mt-6 text-xs text-ink-400">Posted {formatRelative(listing.createdAt)}</p>
+                        <h1 className="mt-4 font-display text-2xl font-extrabold text-ink-900 dark:text-ink-50">
+                            {listing.title}
+                        </h1>
+
+                        <p className="mt-1 flex items-center gap-1 text-sm text-ink-500 dark:text-ink-400">
+                            <Icon name="pin" className="h-4 w-4" />
+                            {listing.location}
+                        </p>
+
+                        <p className="mt-4 text-2xl font-extrabold text-brand-600 dark:text-brand-300">
+                            {formatCurrency(listing.price)}
+                            {listing.mode === 'RENT' ? (
+                                <span className="text-sm font-medium text-ink-400">/mo</span>
+                            ) : null}
+                        </p>
+
+                        <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-ink-700 dark:text-ink-300">
+                            {listing.description}
+                        </p>
+
+                        {schema && Object.keys(listing.attributes ?? {}).length > 0 ? (
+                            <div className="mt-6 grid grid-cols-2 gap-3 border-t border-ink-100 pt-6 dark:border-ink-800 sm:grid-cols-3">
+                                {schema.fields
+                                    .filter((field) => listing.attributes[field.key] !== undefined)
+                                    .map((field) => (
+                                        <div
+                                            key={field.key}
+                                            className="flex items-start gap-2.5 rounded-xl bg-ink-50 p-3 dark:bg-ink-800/60"
+                                        >
+                                            <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-900/40 dark:text-brand-300">
+                                                <Icon
+                                                    name={ATTRIBUTE_ICONS[field.key] ?? 'tag'}
+                                                    className="h-3.5 w-3.5"
+                                                    strokeWidth={2}
+                                                />
+                                            </span>
+                                            <div className="min-w-0">
+                                                <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-400">
+                                                    {field.label}
+                                                </p>
+                                                <p className="truncate text-sm font-medium text-ink-900 dark:text-ink-50">
+                                                    {formatAttributeValue(listing.attributes[field.key])}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))}
+                            </div>
+                        ) : null}
+
+                        <p className="mt-6 text-xs text-ink-400">Posted {formatRelative(listing.createdAt)}</p>
+                    </div>
                 </div>
 
                 {/* ----------------------------------------------- State machine */}
@@ -235,6 +296,20 @@ export default function ListingDetails() {
                                 </li>
                             ))}
                         </ol>
+                    </div>
+                ) : null}
+
+                {/* --------------------------------------------------- Similar */}
+                {similar && similar.length > 0 ? (
+                    <div className="mt-8">
+                        <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-ink-500 dark:text-ink-400">
+                            Similar listings
+                        </h2>
+                        <div className="grid gap-5 sm:grid-cols-2">
+                            {similar.slice(0, 4).map((entry) => (
+                                <ListingCard key={entry.id} listing={entry} />
+                            ))}
+                        </div>
                     </div>
                 ) : null}
             </div>

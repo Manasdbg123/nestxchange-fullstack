@@ -18,7 +18,11 @@ import ListingSearch from './pages/ListingSearch';
  * the initial bundle. The old build shipped every page, plus Leaflet, to
  * someone who only wanted to look at the home page.
  */
+const Properties = lazy(() => import('./pages/Properties'));
+const Vehicles = lazy(() => import('./pages/Vehicles'));
 const CreateListing = lazy(() => import('./pages/CreateListing'));
+const EditListing = lazy(() => import('./pages/EditListing'));
+const MyListings = lazy(() => import('./pages/MyListings'));
 const ListingDetails = lazy(() => import('./pages/ListingDetails'));
 const PropertyDetails = lazy(() => import('./pages/PropertyDetails'));
 const ListYourProperty = lazy(() => import('./pages/ListYourProperty'));
@@ -57,6 +61,12 @@ export default function App() {
                                 selector sets. Replaces the old property-only
                                 Search page as the target of /search. */}
                             <Route path="/search" element={<ListingSearch />} />
+                            {/* The two dedicated marketplace experiences the
+                                brand is actually built around - separate
+                                browsing/filter UI per category, sharing the
+                                same unified backend underneath. */}
+                            <Route path="/properties" element={<Properties />} />
+                            <Route path="/vehicles" element={<Vehicles />} />
                             <Route path="/listings/:id" element={<ListingDetails />} />
                             {/* Listing pages are public. They used to sit behind a
                                 login wall, which meant no visitor could see a
@@ -72,6 +82,22 @@ export default function App() {
                                 element={
                                     <ProtectedRoute>
                                         <CreateListing />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/my-listings"
+                                element={
+                                    <ProtectedRoute>
+                                        <MyListings />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/my-listings/:id/edit"
+                                element={
+                                    <ProtectedRoute>
+                                        <EditListing />
                                     </ProtectedRoute>
                                 }
                             />
