@@ -5,13 +5,7 @@ import { Badge } from '../ui/Primitives';
 import { formatCurrency, formatNumber, formatRelative, humanise } from '../../lib/format';
 import { LISTING_CATEGORIES, LISTING_STATUS_BADGES } from '../../lib/constants';
 
-/**
- * The generic Listing model has no image support yet (see the backend's
- * README "Known limitations"), so every card of a category shows the same
- * honest stock placeholder rather than pretending to have a photo of that
- * specific listing - the same pattern PropertyCard already uses for a
- * missing/broken photo.
- */
+/** Shown for a listing with no photos yet - the same pattern PropertyCard uses for a missing/broken image. */
 const PLACEHOLDER_IMAGE = {
     PROPERTY: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=800',
     VEHICLE: 'https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&q=80&w=800',
@@ -36,9 +30,14 @@ const SPEC_PICKS = {
     ],
 };
 
-export default function ListingCard({ listing }) {
+export default function ListingCard({ listing, isFavorited, onToggleFavorite }) {
     const statusBadge = LISTING_STATUS_BADGES[listing.status];
     const categoryEntry = LISTING_CATEGORIES.find((entry) => entry.value === listing.category);
+    const coverImage =
+        listing.images?.find((image) => image.isPrimary)?.imageUrl ??
+        listing.images?.[0]?.imageUrl ??
+        PLACEHOLDER_IMAGE[listing.category] ??
+        PLACEHOLDER_IMAGE.PROPERTY;
     const specs = (SPEC_PICKS[listing.category] ?? [])
         .map((spec) => {
             const value = listing.attributes?.[spec.key];
@@ -55,7 +54,7 @@ export default function ListingCard({ listing }) {
         >
             <div className="relative h-44 w-full overflow-hidden bg-ink-100 dark:bg-ink-800">
                 <img
-                    src={PLACEHOLDER_IMAGE[listing.category] ?? PLACEHOLDER_IMAGE.PROPERTY}
+                    src={coverImage}
                     alt=""
                     loading="lazy"
                     className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
@@ -69,6 +68,34 @@ export default function ListingCard({ listing }) {
                     <div className="absolute right-3 top-3">
                         <Badge tone={statusBadge.tone}>{statusBadge.label}</Badge>
                     </div>
+                ) : null}
+                {onToggleFavorite ? (
+                    <button
+                        type="button"
+                        onClick={(event) => {
+                            // Without stopPropagation, this click bubbles up to
+                            // the surrounding <Link> and navigates to the
+                            // listing anyway - preventDefault alone only stops
+                            // this button's own default action, not the
+                            // separate onClick handler React Router attaches
+                            // to the anchor.
+                            event.preventDefault();
+                            event.stopPropagation();
+                            onToggleFavorite(listing.id);
+                        }}
+                        aria-pressed={Boolean(isFavorited)}
+                        className="absolute bottom-2 right-2 rounded-full bg-white/90 p-2 shadow transition-transform hover:scale-110 dark:bg-ink-900/90"
+                    >
+                        <Icon
+                            name="heart"
+                            filled={Boolean(isFavorited)}
+                            className={`h-4 w-4 ${isFavorited ? 'text-accent-500' : 'text-ink-400'}`}
+                            strokeWidth={2}
+                        />
+                        <span className="sr-only">
+                            {isFavorited ? `Remove ${listing.title} from shortlist` : `Save ${listing.title} to shortlist`}
+                        </span>
+                    </button>
                 ) : null}
             </div>
 

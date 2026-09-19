@@ -37,7 +37,7 @@ export default function PropertyDetails() {
     const { id } = useParams();
     const navigate = useNavigate();
     const toast = useToast();
-    const { isAuthenticated, user, requireAuth } = useAuth();
+    const { isAuthenticated, user, requireAuth, isLoading: authLoading } = useAuth();
     const { isFavorited, toggleFavorite } = useFavorites();
 
     const [contactRevealed, setContactRevealed] = useState(false);
@@ -108,7 +108,12 @@ export default function PropertyDetails() {
         }
     };
 
-    if (loading) {
+    // Public page, so it can't block anonymous visitors while auth resolves -
+    // but without waiting for a real session too, an owner refreshing their
+    // own listing briefly renders as a signed-out stranger (the "contact
+    // owner" CTA flashes instead of their edit controls). authLoading is only
+    // true when a token exists, so anonymous visitors see no extra delay.
+    if (loading || authLoading) {
         return (
             <div className="flex min-h-[60vh] items-center justify-center" role="status">
                 <Spinner className="h-8 w-8 text-brand-500" />

@@ -8,6 +8,7 @@ import ErrorBoundary from './components/layout/ErrorBoundary';
 import AuthModal from './components/auth/AuthModal';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import ToastViewport from './components/ui/ToastViewport';
+import AssistantWidget from './components/assistant/AssistantWidget';
 import { Spinner } from './components/ui/Primitives';
 
 import Home from './pages/Home';
@@ -23,6 +24,8 @@ const Vehicles = lazy(() => import('./pages/Vehicles'));
 const CreateListing = lazy(() => import('./pages/CreateListing'));
 const EditListing = lazy(() => import('./pages/EditListing'));
 const MyListings = lazy(() => import('./pages/MyListings'));
+const ListingFavorites = lazy(() => import('./pages/ListingFavorites'));
+const SentInquiries = lazy(() => import('./pages/SentInquiries'));
 const ListingDetails = lazy(() => import('./pages/ListingDetails'));
 const PropertyDetails = lazy(() => import('./pages/PropertyDetails'));
 const ListYourProperty = lazy(() => import('./pages/ListYourProperty'));
@@ -102,6 +105,22 @@ export default function App() {
                                 }
                             />
                             <Route
+                                path="/listing-shortlist"
+                                element={
+                                    <ProtectedRoute>
+                                        <ListingFavorites />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/my-inquiries"
+                                element={
+                                    <ProtectedRoute>
+                                        <SentInquiries />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
                                 path="/post-property"
                                 element={
                                     <ProtectedRoute>
@@ -152,6 +171,7 @@ export default function App() {
             <Footer />
             <AuthModal />
             <ToastViewport />
+            <AssistantWidget />
         </div>
     );
 }

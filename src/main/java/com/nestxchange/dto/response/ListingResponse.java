@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 @Data
@@ -29,6 +30,8 @@ public class ListingResponse {
     private String location;
     private ListingStatus status;
     private Map<String, Object> attributes;
+    @Builder.Default
+    private List<ListingImageResponse> images = List.of();
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

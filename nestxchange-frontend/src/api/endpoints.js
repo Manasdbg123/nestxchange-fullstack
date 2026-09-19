@@ -116,6 +116,36 @@ export const listingApi = {
     fireTransition: (id, event) => api.post(`/listings/${id}/transitions`, { event }).then((r) => r.data),
 
     transitionHistory: (id) => api.get(`/listings/${id}/transitions`).then((r) => r.data),
+
+    uploadImages: (id, files) => {
+        const formData = new FormData();
+        files.forEach((file) => formData.append('images', file));
+        return api.post(`/listings/${id}/images`, formData).then((r) => r.data);
+    },
+
+    deleteImage: (id, imageId) => api.delete(`/listings/${id}/images/${imageId}`).then((r) => r.data),
+
+    setPrimaryImage: (id, imageId) =>
+        api.patch(`/listings/${id}/images/${imageId}/primary`).then((r) => r.data),
+
+    toggleFavorite: (id) => api.post(`/listings/${id}/favorite`).then((r) => r.data.favorited),
+
+    favorites: () => api.get('/listings/favorites').then((r) => r.data),
+
+    sendInquiry: (id, message) => api.post(`/listings/${id}/inquiries`, { message }).then((r) => r.data),
+
+    inquiriesReceived: (id) => api.get(`/listings/${id}/inquiries`).then((r) => r.data),
+
+    inquiriesSent: () => api.get('/listings/inquiries/sent').then((r) => r.data),
+};
+
+// --------------------------------------------------------------------------
+// Assistant (RAG chat grounded in live listing search)
+// --------------------------------------------------------------------------
+
+export const assistantApi = {
+    chat: (message, history = []) =>
+        api.post('/assistant/chat', { message, history }).then((r) => r.data),
 };
 
 // --------------------------------------------------------------------------

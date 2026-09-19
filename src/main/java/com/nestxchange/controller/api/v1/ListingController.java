@@ -1,10 +1,13 @@
 package com.nestxchange.controller.api.v1;
 
 import com.nestxchange.dto.request.ListingCreateRequest;
+import com.nestxchange.dto.request.ListingInquiryRequest;
 import com.nestxchange.dto.request.ListingSearchRequest;
 import com.nestxchange.dto.request.ListingTransitionRequest;
 import com.nestxchange.dto.request.ListingUpdateRequest;
 import com.nestxchange.dto.response.CategorySchemaResponse;
+import com.nestxchange.dto.response.ListingImageResponse;
+import com.nestxchange.dto.response.ListingInquiryResponse;
 import com.nestxchange.dto.response.ListingResponse;
 import com.nestxchange.dto.response.ListingTransitionResponse;
 import com.nestxchange.dto.response.PaginatedResponse;
@@ -16,6 +19,9 @@ import com.nestxchange.repository.ListingTransitionRepository;
 import com.nestxchange.schema.CategorySchemaRegistry;
 import com.nestxchange.search.ListingSearchService;
 import com.nestxchange.security.UserPrincipal;
+import com.nestxchange.service.ListingFavoriteService;
+import com.nestxchange.service.ListingImageService;
+import com.nestxchange.service.ListingInquiryService;
 import com.nestxchange.service.ListingService;
 import com.nestxchange.statemachine.ListingStateMachineService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -27,6 +33,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -34,6 +41,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
@@ -57,6 +65,9 @@ public class ListingController {
     private final ListingStateMachineService listingStateMachineService;
     private final ListingTransitionRepository listingTransitionRepository;
     private final ListingService listingService;
+    private final ListingImageService listingImageService;
+    private final ListingFavoriteService listingFavoriteService;
+    private final ListingInquiryService listingInquiryService;
 
     @GetMapping("/schemas")
     @Operation(summary = "Every category's attribute schema - what the dynamic listing form and search filters are built from")
@@ -99,10 +110,84 @@ public class ListingController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping(value = "/{id}/images", consumes = {"multipart/form-data"})
+    @Operation(summary = "Add one or more photos to a listing you own")
+    public ResponseEntity<List<ListingImageResponse>> uploadImages(
+            @PathVariable Long id,
+            @RequestParam("images") List<MultipartFile> images,
+            @AuthenticationPrincipal UserPrincipal currentUser) {
+
+        List<ListingImageResponse> uploaded = listingImageService.upload(id, images, currentUser.getId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(uploaded);
+    }
+
+    @DeleteMapping("/{id}/images/{imageId}")
+    @Operation(summary = "Remove a photo from a listing you own")
+    public ResponseEntity<Void> deleteImage(
+            @PathVariable Long id,
+            @PathVariable Long imageId,
+            @AuthenticationPrincipal UserPrincipal currentUser) {
+
+        listingImageService.delete(id, imageId, currentUser.getId());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/images/{imageId}/primary")
+    @Operation(summary = "Make a photo the listing's cover image")
+    public ResponseEntity<List<ListingImageResponse>> setPrimaryImage(
+            @PathVariable Long id,
+            @PathVariable Long imageId,
+            @AuthenticationPrincipal UserPrincipal currentUser) {
+
+        return ResponseEntity.ok(listingImageService.setPrimary(id, imageId, currentUser.getId()));
+    }
+
     @GetMapping("/my-listings")
     @Operation(summary = "Listings the caller has posted")
     public ResponseEntity<List<ListingResponse>> myListings(@AuthenticationPrincipal UserPrincipal currentUser) {
         return ResponseEntity.ok(listingService.myListings(currentUser.getId()));
+    }
+
+    @PostMapping("/{id}/favorite")
+    @Operation(summary = "Add or remove a listing from the caller's shortlist")
+    public ResponseEntity<Map<String, Boolean>> toggleFavorite(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserPrincipal currentUser) {
+
+        boolean favorited = listingFavoriteService.toggle(id, currentUser.getId());
+        return ResponseEntity.ok(Map.of("favorited", favorited));
+    }
+
+    @GetMapping("/favorites")
+    @Operation(summary = "Listings the caller has shortlisted")
+    public ResponseEntity<List<ListingResponse>> favorites(@AuthenticationPrincipal UserPrincipal currentUser) {
+        return ResponseEntity.ok(listingFavoriteService.list(currentUser.getId()));
+    }
+
+    @PostMapping("/{id}/inquiries")
+    @Operation(summary = "Send a message to a listing's owner - lighter-weight than firing REQUEST")
+    public ResponseEntity<ListingInquiryResponse> sendInquiry(
+            @PathVariable Long id,
+            @Valid @RequestBody ListingInquiryRequest request,
+            @AuthenticationPrincipal UserPrincipal currentUser) {
+
+        ListingInquiryResponse created = listingInquiryService.send(id, request.message(), currentUser.getId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @GetMapping("/{id}/inquiries")
+    @Operation(summary = "Inquiries received on a listing you own")
+    public ResponseEntity<List<ListingInquiryResponse>> listingInquiries(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserPrincipal currentUser) {
+
+        return ResponseEntity.ok(listingInquiryService.forListing(id, currentUser.getId()));
+    }
+
+    @GetMapping("/inquiries/sent")
+    @Operation(summary = "Inquiries the caller has sent, across every listing")
+    public ResponseEntity<List<ListingInquiryResponse>> sentInquiries(@AuthenticationPrincipal UserPrincipal currentUser) {
+        return ResponseEntity.ok(listingInquiryService.sentBy(currentUser.getId()));
     }
 
     @GetMapping("/search")
@@ -132,10 +217,9 @@ public class ListingController {
     }
 
     // Fires the one state machine that governs both rent and sale listings -
-    // see ListingStateMachineService. Coarse-grained authorization for now
-    // (any authenticated user): per-actor rules (only the owner may CONFIRM,
-    // the requester may not be the owner, etc.) need a concept of "who
-    // requested this listing", which doesn't exist yet.
+    // see ListingStateMachineService, which also enforces per-actor rules
+    // (only the owner may CONFIRM, only the owner or the recorded requester
+    // may PROCEED/CLOSE, you can't REQUEST your own listing) via 403s.
     @PostMapping("/{id}/transitions")
     @Operation(summary = "Advance a listing through AVAILABLE -> REQUESTED -> CONFIRMED -> ACTIVE/COMPLETED -> CLOSED")
     public ResponseEntity<ListingResponse> transition(

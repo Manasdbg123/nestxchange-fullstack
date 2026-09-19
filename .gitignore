@@ -1,5 +1,7 @@
 # ---- Java / Maven ----
 target/
+# Local image-upload fallback (see CloudinaryServiceImpl) - never committed.
+/uploads/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/

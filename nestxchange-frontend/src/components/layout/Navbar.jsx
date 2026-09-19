@@ -145,14 +145,20 @@ export default function Navbar() {
                                     <MenuLink to="/my-listings" icon="tag" onSelect={() => setAccountOpen(false)}>
                                         My listings
                                     </MenuLink>
-                                    <MenuLink to="/my-properties" icon="building" onSelect={() => setAccountOpen(false)}>
-                                        My properties (with photos)
-                                    </MenuLink>
-                                    <MenuLink to="/shortlist" icon="heart" onSelect={() => setAccountOpen(false)}>
+                                    <MenuLink to="/listing-shortlist" icon="heart" onSelect={() => setAccountOpen(false)}>
                                         Shortlist
                                     </MenuLink>
+                                    <MenuLink to="/my-inquiries" icon="mail" onSelect={() => setAccountOpen(false)}>
+                                        My inquiries
+                                    </MenuLink>
+                                    <MenuLink to="/my-properties" icon="building" onSelect={() => setAccountOpen(false)}>
+                                        My properties (legacy)
+                                    </MenuLink>
+                                    <MenuLink to="/shortlist" icon="heart" onSelect={() => setAccountOpen(false)}>
+                                        Property shortlist (legacy)
+                                    </MenuLink>
                                     <MenuLink to="/visits" icon="calendar" onSelect={() => setAccountOpen(false)}>
-                                        Site visits
+                                        Site visits (legacy)
                                     </MenuLink>
 
                                     <button

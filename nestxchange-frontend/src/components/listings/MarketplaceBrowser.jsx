@@ -6,6 +6,7 @@ import ListingCard from './ListingCard';
 import { Alert, EmptyState, Field, Spinner } from '../ui/Primitives';
 import Pagination from '../property/Pagination';
 import useAsync from '../../hooks/useAsync';
+import useListingFavorites from '../../hooks/useListingFavorites';
 import { listingApi } from '../../api/endpoints';
 import { toErrorMessage } from '../../api/client';
 import { BROWSE_MODES, LISTING_CATEGORIES } from '../../lib/constants';
@@ -29,6 +30,7 @@ export default function MarketplaceBrowser({ lockedCategory = null, emptyStateDe
         [searchParams, lockedCategory],
     );
     const page = Number(searchParams.get('page') ?? 0);
+    const { isFavorited, toggleFavorite } = useListingFavorites();
 
     const [schemas, setSchemas] = useState(null);
     useEffect(() => {
@@ -184,7 +186,12 @@ export default function MarketplaceBrowser({ lockedCategory = null, emptyStateDe
                         </p>
                         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                             {listings.map((listing) => (
-                                <ListingCard key={listing.id} listing={listing} />
+                                <ListingCard
+                                    key={listing.id}
+                                    listing={listing}
+                                    isFavorited={isFavorited(listing.id)}
+                                    onToggleFavorite={toggleFavorite}
+                                />
                             ))}
                         </div>
                         <Pagination page={results?.pageNo ?? 0} totalPages={results?.totalPages ?? 0} onChange={changePage} />

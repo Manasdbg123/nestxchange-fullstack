@@ -1,9 +1,11 @@
 package com.nestxchange.mapper;
 
 import com.nestxchange.dto.response.CategorySchemaResponse;
+import com.nestxchange.dto.response.ListingImageResponse;
 import com.nestxchange.dto.response.ListingResponse;
 import com.nestxchange.dto.response.ListingTransitionResponse;
 import com.nestxchange.entity.Listing;
+import com.nestxchange.entity.ListingImage;
 import com.nestxchange.entity.ListingTransition;
 import com.nestxchange.schema.CategorySchema;
 
@@ -27,6 +29,14 @@ public final class ListingMapper {
                 .attributes(listing.getAttributes())
                 .createdAt(listing.getCreatedAt())
                 .updatedAt(listing.getUpdatedAt())
+                .build();
+    }
+
+    public static ListingImageResponse toResponse(ListingImage image) {
+        return ListingImageResponse.builder()
+                .id(image.getId())
+                .imageUrl(image.getImageUrl())
+                .isPrimary(image.isPrimary())
                 .build();
     }
 

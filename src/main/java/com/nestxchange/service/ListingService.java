@@ -2,12 +2,14 @@ package com.nestxchange.service;
 
 import com.nestxchange.dto.request.ListingCreateRequest;
 import com.nestxchange.dto.request.ListingUpdateRequest;
+import com.nestxchange.dto.response.ListingImageResponse;
 import com.nestxchange.dto.response.ListingResponse;
 import com.nestxchange.entity.Listing;
 import com.nestxchange.entity.ListingStatus;
 import com.nestxchange.exception.ResourceNotFoundException;
 import com.nestxchange.exception.UnauthorizedAccessException;
 import com.nestxchange.mapper.ListingMapper;
+import com.nestxchange.repository.ListingImageRepository;
 import com.nestxchange.repository.ListingRepository;
 import com.nestxchange.schema.ListingAttributeValidator;
 import lombok.RequiredArgsConstructor;
@@ -22,13 +24,16 @@ import java.util.Map;
  * Plain CRUD for listings. Category-specific validation is delegated to
  * {@link ListingAttributeValidator}; lifecycle status changes are delegated
  * to {@code ListingStateMachineService} - this class only ever writes
- * {@link ListingStatus#AVAILABLE} once, at creation.
+ * {@link ListingStatus#AVAILABLE} once, at creation. Photo management is
+ * delegated to {@link ListingImageService}; this class only reads images
+ * back in, to attach to the response.
  */
 @Service
 @RequiredArgsConstructor
 public class ListingService {
 
     private final ListingRepository listingRepository;
+    private final ListingImageRepository listingImageRepository;
     private final ListingAttributeValidator attributeValidator;
 
     @Transactional
@@ -48,12 +53,12 @@ public class ListingService {
                 .attributes(attributes)
                 .build();
 
-        return ListingMapper.toResponse(listingRepository.save(listing));
+        return withImages(listingRepository.save(listing));
     }
 
     @Transactional(readOnly = true)
     public ListingResponse getById(Long id) {
-        return ListingMapper.toResponse(load(id));
+        return withImages(load(id));
     }
 
     @Transactional
@@ -69,7 +74,7 @@ public class ListingService {
         listing.setLocation(request.getLocation());
         listing.setAttributes(attributes);
 
-        return ListingMapper.toResponse(listingRepository.save(listing));
+        return withImages(listingRepository.save(listing));
     }
 
     @Transactional
@@ -82,7 +87,7 @@ public class ListingService {
     @Transactional(readOnly = true)
     public List<ListingResponse> myListings(Long ownerId) {
         return listingRepository.findByOwnerIdOrderByCreatedAtDesc(ownerId).stream()
-                .map(ListingMapper::toResponse)
+                .map(this::withImages)
                 .toList();
     }
 
@@ -95,6 +100,16 @@ public class ListingService {
         if (!listing.getOwnerId().equals(requesterId)) {
             throw new UnauthorizedAccessException("You do not own this listing");
         }
+    }
+
+    private ListingResponse withImages(Listing listing) {
+        ListingResponse response = ListingMapper.toResponse(listing);
+        List<ListingImageResponse> images = listingImageRepository.findByListingIdOrderByPositionAsc(listing.getId())
+                .stream()
+                .map(ListingMapper::toResponse)
+                .toList();
+        response.setImages(images);
+        return response;
     }
 
     /**

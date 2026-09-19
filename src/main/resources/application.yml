@@ -65,6 +65,11 @@ server:
     include-binding-errors: never
 
 app:
+  # Used to build absolute URLs for locally-stored images (the no-Cloudinary
+  # fallback in CloudinaryServiceImpl) - irrelevant once Cloudinary is set up.
+  public-base-url: ${APP_PUBLIC_BASE_URL:http://localhost:${server.port}}
+  upload:
+    local-dir: ${UPLOAD_LOCAL_DIR:uploads}
   jwt:
     # HS512 requires >= 64 bytes of key material. The application refuses to
     # start if this is left blank or at a placeholder outside the dev profile.
@@ -76,6 +81,15 @@ app:
     enabled: ${SEED_ENABLED:false}
     admin-email: ${SEED_ADMIN_EMAIL:admin@nestxchange.local}
     admin-password: ${SEED_ADMIN_PASSWORD:}
+  assistant:
+    # Groq's chat-completions API is OpenAI-compatible, so no vendor SDK is
+    # needed - see GroqChatClient. api-key is deliberately left blank here;
+    # it's set in application-local.yml (gitignored) or the ASSISTANT_API_KEY
+    # env var, never committed.
+    api-key: ${ASSISTANT_API_KEY:}
+    base-url: ${ASSISTANT_BASE_URL:https://api.groq.com/openai/v1}
+    model: ${ASSISTANT_MODEL:llama-3.1-8b-instant}
+    max-retrieved-listings: 5
 
 cloudinary:
   cloud-name: ${CLOUDINARY_CLOUD_NAME:}

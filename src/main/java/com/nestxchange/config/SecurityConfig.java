@@ -61,6 +61,11 @@ public class SecurityConfig {
                                 "/actuator/health",
                                 "/error").permitAll()
 
+                        // Locally-stored images (see CloudinaryServiceImpl's
+                        // no-Cloudinary-credentials fallback) - same visibility
+                        // as a Cloudinary-hosted image URL would have.
+                        .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
+
                         // Anonymous sign-up and sign-in.
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login").permitAll()
 

@@ -3,9 +3,12 @@ import { Link, useParams } from 'react-router-dom';
 
 import Icon from '../components/ui/Icon';
 import ListingCard from '../components/listings/ListingCard';
+import ListingImageManager from '../components/listings/ListingImageManager';
+import ListingInquiryPanel from '../components/listings/ListingInquiryPanel';
 import { Alert, Badge, EmptyState, Spinner } from '../components/ui/Primitives';
 import usePageMeta from '../hooks/usePageMeta';
 import useAsync from '../hooks/useAsync';
+import useListingFavorites from '../hooks/useListingFavorites';
 import { useAuth, useToast } from '../context/contexts';
 import { listingApi } from '../api/endpoints';
 import { toErrorMessage } from '../api/client';
@@ -49,7 +52,8 @@ const BROWSE_ROUTE = { PROPERTY: '/properties', VEHICLE: '/vehicles' };
 export default function ListingDetails() {
     const { id } = useParams();
     const toast = useToast();
-    const { isAuthenticated, user, requireAuth } = useAuth();
+    const { isAuthenticated, user, requireAuth, isLoading: authLoading } = useAuth();
+    const { isFavorited, toggleFavorite } = useListingFavorites();
 
     const fetchListing = useCallback(() => listingApi.getById(id), [id]);
     const { data: listing, loading, error: fetchError, mutate } = useAsync(`listing:${id}`, fetchListing);
@@ -98,6 +102,14 @@ export default function ListingDetails() {
     const categoryEntry = LISTING_CATEGORIES.find((entry) => entry.value === listing?.category);
     const statusBadge = listing ? LISTING_STATUS_BADGES[listing.status] : null;
     const nextAction = listing ? nextActionFor(listing, user?.id) : null;
+    const isOwner = Boolean(listing && user && listing.ownerId === user.id);
+    const galleryImages = listing?.images ?? [];
+    const [activeImageIndex, setActiveImageIndex] = useState(0);
+    const heroImage =
+        galleryImages[activeImageIndex]?.imageUrl ??
+        galleryImages[0]?.imageUrl ??
+        PLACEHOLDER_IMAGE[listing?.category] ??
+        PLACEHOLDER_IMAGE.PROPERTY;
 
     const fireTransition = (event) => {
         const doFire = () => {
@@ -123,7 +135,16 @@ export default function ListingDetails() {
         doFire();
     };
 
-    if (loading) {
+    // This page is intentionally public (unlike ProtectedRoute pages), so it
+    // can't just block anonymous visitors while auth resolves - but it must
+    // still wait for a REAL session to resolve before deciding `isOwner`.
+    // authLoading is only true when a token exists (an anonymous visitor's
+    // status starts at 'anonymous', not 'loading'), so without this guard an
+    // owner refreshing their own listing briefly renders as a signed-out
+    // stranger: the "Contact the owner" form flashes instead of their photo
+    // manager and inquiries panel, and "Sign in to interact" flashes even
+    // though they're already signed in.
+    if (loading || authLoading) {
         return (
             <div className="flex min-h-[60vh] items-center justify-center">
                 <Spinner className="h-8 w-8 text-brand-500" />
@@ -165,11 +186,23 @@ export default function ListingDetails() {
 
                 <div className="surface mt-4 overflow-hidden">
                     <div className="relative h-56 w-full overflow-hidden bg-ink-100 sm:h-72 dark:bg-ink-800">
-                        <img
-                            src={PLACEHOLDER_IMAGE[listing.category] ?? PLACEHOLDER_IMAGE.PROPERTY}
-                            alt=""
-                            className="h-full w-full object-cover"
-                        />
+                        <img src={heroImage} alt="" className="h-full w-full object-cover" />
+                        {galleryImages.length > 1 ? (
+                            <div className="absolute inset-x-0 bottom-0 flex justify-center gap-1.5 p-3">
+                                {galleryImages.map((image, index) => (
+                                    <button
+                                        key={image.id}
+                                        type="button"
+                                        onClick={() => setActiveImageIndex(index)}
+                                        aria-label={`Show photo ${index + 1}`}
+                                        aria-current={index === activeImageIndex}
+                                        className={`h-2 w-2 rounded-full transition-all ${
+                                            index === activeImageIndex ? 'w-5 bg-white' : 'bg-white/60'
+                                        }`}
+                                    />
+                                ))}
+                            </div>
+                        ) : null}
                     </div>
 
                     <div className="p-6">
@@ -182,9 +215,29 @@ export default function ListingDetails() {
                             {statusBadge ? <Badge tone={statusBadge.tone}>{statusBadge.label}</Badge> : null}
                         </div>
 
-                        <h1 className="mt-4 font-display text-2xl font-extrabold text-ink-900 dark:text-ink-50">
-                            {listing.title}
-                        </h1>
+                        <div className="mt-4 flex items-start justify-between gap-3">
+                            <h1 className="font-display text-2xl font-extrabold text-ink-900 dark:text-ink-50">
+                                {listing.title}
+                            </h1>
+                            {!isOwner ? (
+                                <button
+                                    type="button"
+                                    onClick={() => toggleFavorite(listing.id)}
+                                    aria-pressed={isFavorited(listing.id)}
+                                    className="shrink-0 rounded-full border border-ink-200 p-2.5 transition-colors hover:bg-ink-50 dark:border-ink-700 dark:hover:bg-ink-800"
+                                >
+                                    <Icon
+                                        name="heart"
+                                        filled={isFavorited(listing.id)}
+                                        className={`h-5 w-5 ${isFavorited(listing.id) ? 'text-accent-500' : 'text-ink-400'}`}
+                                        strokeWidth={2}
+                                    />
+                                    <span className="sr-only">
+                                        {isFavorited(listing.id) ? 'Remove from shortlist' : 'Save to shortlist'}
+                                    </span>
+                                </button>
+                            ) : null}
+                        </div>
 
                         <p className="mt-1 flex items-center gap-1 text-sm text-ink-500 dark:text-ink-400">
                             <Icon name="pin" className="h-4 w-4" />
@@ -233,6 +286,30 @@ export default function ListingDetails() {
 
                         <p className="mt-6 text-xs text-ink-400">Posted {formatRelative(listing.createdAt)}</p>
                     </div>
+                </div>
+
+                {/* ------------------------------------------- Owner: photos */}
+                {isOwner ? (
+                    <div className="surface mt-5 p-6">
+                        <ListingImageManager
+                            listingId={listing.id}
+                            images={galleryImages}
+                            onChange={(updatedImages) => {
+                                mutate((current) => ({ ...current, images: updatedImages }));
+                                setActiveImageIndex(0);
+                            }}
+                        />
+                    </div>
+                ) : null}
+
+                {/* ------------------------------------------------- Inquiries */}
+                <div className="surface mt-5 p-6">
+                    <ListingInquiryPanel
+                        listingId={listing.id}
+                        isOwner={isOwner}
+                        isAuthenticated={isAuthenticated}
+                        requireAuth={requireAuth}
+                    />
                 </div>
 
                 {/* ----------------------------------------------- State machine */}
@@ -307,7 +384,12 @@ export default function ListingDetails() {
                         </h2>
                         <div className="grid gap-5 sm:grid-cols-2">
                             {similar.slice(0, 4).map((entry) => (
-                                <ListingCard key={entry.id} listing={entry} />
+                                <ListingCard
+                                    key={entry.id}
+                                    listing={entry}
+                                    isFavorited={isFavorited(entry.id)}
+                                    onToggleFavorite={toggleFavorite}
+                                />
                             ))}
                         </div>
                     </div>
