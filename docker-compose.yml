@@ -1,28 +1,27 @@
 # =============================================================================
-# Local full-stack environment: MySQL + API + web client.
+# Local full-stack environment: PostgreSQL + API + web client.
 #
 # Secrets come from a `.env` file next to this one (copy `.env.example`), so
 # nothing sensitive is committed. `docker compose up` reads it automatically.
 # =============================================================================
 
 services:
-  mysqldb:
-    image: mysql:8.0
-    container_name: rentnest-mysql
+  postgresdb:
+    image: postgres:16
+    container_name: nestxchange-postgres
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-rentnest}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in your .env}
-      MYSQL_USER: ${DB_USERNAME:-rentnest}
-      MYSQL_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in your .env}
+      POSTGRES_DB: ${POSTGRES_DB:-nestxchange}
+      POSTGRES_USER: ${DB_USERNAME:-nestxchange}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in your .env}
     ports:
-      - "${MYSQL_PORT:-3306}:3306"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       # The API used to start the instant the container existed and crash-loop
-      # while MySQL was still initialising. depends_on now waits for readiness.
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${MYSQL_ROOT_PASSWORD}"]
+      # while Postgres was still initialising. depends_on now waits for readiness.
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-nestxchange} -d ${POSTGRES_DB:-nestxchange}"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -32,20 +31,19 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: rentnest-api
+    container_name: nestxchange-api
     restart: unless-stopped
     depends_on:
-      mysqldb:
+      postgresdb:
         condition: service_healthy
     ports:
       - "${SERVER_PORT:-8081}:8081"
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       SERVER_PORT: 8081
-      DB_URL: jdbc:mysql://mysqldb:3306/${MYSQL_DATABASE:-rentnest}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-      DB_USERNAME: ${DB_USERNAME:-rentnest}
+      DB_URL: jdbc:postgresql://postgresdb:5432/${POSTGRES_DB:-nestxchange}
+      DB_USERNAME: ${DB_USERNAME:-nestxchange}
       DB_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in your .env}
-      DDL_AUTO: ${DDL_AUTO:-update}
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in your .env}
       JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
@@ -55,11 +53,11 @@ services:
 
   web:
     build:
-      context: ./rentnest-frontend
+      context: ./nestxchange-frontend
       dockerfile: Dockerfile
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8081/api/v1}
-    container_name: rentnest-web
+    container_name: nestxchange-web
     restart: unless-stopped
     depends_on:
       - api
@@ -67,4 +65,4 @@ services:
       - "${WEB_PORT:-5173}:80"
 
 volumes:
-  mysql_data:
+  postgres_data:

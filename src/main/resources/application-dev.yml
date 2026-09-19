@@ -1,11 +1,10 @@
 # ---------------------------------------------------------------------------
-# Development profile: verbose SQL, schema auto-update, sample data seeding.
+# Development profile: verbose SQL, sample data seeding. Schema itself comes
+# from Flyway migrations (see application.yml), not Hibernate ddl-auto.
 # ---------------------------------------------------------------------------
 spring:
   jpa:
     show-sql: true
-    hibernate:
-      ddl-auto: update
     properties:
       hibernate:
         format_sql: true
@@ -21,4 +20,4 @@ app:
 
 logging:
   level:
-    com.rentnest: DEBUG
+    com.nestxchange: DEBUG

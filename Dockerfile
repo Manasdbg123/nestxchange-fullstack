@@ -1,5 +1,5 @@
 # =============================================================================
-# RentNest backend image
+# NestXchange backend image
 #
 # Fixes carried over from the previous version of this file:
 #   * built and ran on Java 21 while the pom targets Java 17
@@ -28,12 +28,12 @@ RUN mvn -B -q clean package -DskipTests \
 FROM eclipse-temurin:17-jre-alpine AS runtime
 
 # Never run application code as root inside a container.
-RUN addgroup -S rentnest && adduser -S -G rentnest rentnest
+RUN addgroup -S nestxchange && adduser -S -G nestxchange nestxchange
 
 WORKDIR /app
-COPY --from=builder --chown=rentnest:rentnest /build/target/app.jar app.jar
+COPY --from=builder --chown=nestxchange:nestxchange /build/target/app.jar app.jar
 
-USER rentnest
+USER nestxchange
 
 ENV SERVER_PORT=8081 \
     SPRING_PROFILES_ACTIVE=prod \

@@ -1,7 +1,8 @@
-# RentNest
+# NestXchange
 
-A zero-brokerage property rental marketplace: owners list directly, tenants
-search, shortlist and book viewings without an agent in between.
+A multi-category marketplace: property and vehicles, rent, buy or sell, all
+through one category-agnostic engine rather than two parallel apps. Evolved
+from an earlier property-only rental app ("RentNest").
 
 Spring Boot REST API + React single-page client.
 
@@ -22,7 +23,7 @@ Spring Boot REST API + React single-page client.
 
 ## Quick start
 
-**Prerequisites:** JDK 17+, Maven 3.9+, Node 20+, MySQL 8.
+**Prerequisites:** JDK 17+, Maven 3.9+, Node 20+, PostgreSQL 16.
 
 ### 1. Configure
 
@@ -61,10 +62,12 @@ mvn spring-boot:run
 ```
 
 The API listens on **http://localhost:8081**. Interactive docs are at
-`/swagger-ui.html`, and a health probe at `/actuator/health`.
+`/swagger-ui.html`, and a health probe at `/actuator/health`. Flyway applies
+schema migrations from `src/main/resources/db/migration` automatically on
+startup.
 
-Under the `dev` profile, `DataSeeder` populates 48 sample listings on first run
-and creates a demo owner account using `SEED_ADMIN_EMAIL` /
+Under the `dev` profile, `DataSeeder` populates 48 sample property listings on
+first run and creates a demo owner account using `SEED_ADMIN_EMAIL` /
 `SEED_ADMIN_PASSWORD`. The seed is deterministic, so every developer sees the
 same catalogue. Set `SEED_ENABLED=false` to skip it.
 
@@ -74,7 +77,7 @@ same catalogue. Set `SEED_ENABLED=false` to skip it.
 ### 3. Start the web client
 
 ```bash
-cd rentnest-frontend
+cd nestxchange-frontend
 cp .env.example .env.local
 npm install
 npm run dev
@@ -91,13 +94,13 @@ Every secret is read from the environment; nothing sensitive is committed. See
 
 | Variable | Purpose | Required |
 |---|---|---|
-| `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | MySQL connection | yes |
+| `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | PostgreSQL connection | yes |
 | `JWT_SECRET` | Token signing key, ≥ 64 bytes | yes (dev has a fallback) |
 | `JWT_EXPIRATION_MS` | Token lifetime, default 24 h | no |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated browser origins | no |
 | `CLOUDINARY_*` | Image hosting credentials | only to upload photos |
 | `SEED_ENABLED`, `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD` | Dev sample data | no |
-| `DDL_AUTO` | Hibernate schema strategy | no |
+| `DDL_AUTO` | Hibernate schema-validation mode (Flyway owns the schema itself) | no |
 
 Frontend (build-time — Vite inlines these into the bundle, so never put a
 secret here):
@@ -110,24 +113,24 @@ secret here):
 
 | Profile | Schema | Seeding | SQL logging |
 |---|---|---|---|
-| `dev` (default) | `update` | on | on |
-| `prod` | `validate` | off | off |
+| `dev` (default) | Flyway migrations, `validate` | on | on |
+| `prod` | Flyway migrations, `validate` | off | off |
 
-`prod` validates the schema rather than mutating it. Apply schema changes
-deliberately before deploying.
+Hibernate never mutates the schema in either profile; Flyway migrations under
+`src/main/resources/db/migration` are the only way schema changes ship.
 
 ---
 
 ## Running with Docker
 
 ```bash
-cp .env.example .env      # fill in DB_PASSWORD, MYSQL_ROOT_PASSWORD, JWT_SECRET
+cp .env.example .env      # fill in DB_PASSWORD, JWT_SECRET
 docker compose up --build
 ```
 
-Brings up MySQL, the API and the web client. Compose waits for the database
-health check before starting the API, and both application containers run as
-non-root users.
+Brings up PostgreSQL, the API and the web client. Compose waits for the
+database health check before starting the API, and both application
+containers run as non-root users.
 
 - Web client: http://localhost:5173
 - API: http://localhost:8081
@@ -136,22 +139,37 @@ non-root users.
 
 ## Architecture
 
+The whole point of this project is a **category-agnostic core**: one
+`Listing` entity/table for both property and vehicle listings, with
+category-specific fields (bedrooms vs. mileage, amenities vs. transmission)
+living in a JSONB `attributes` column rather than in separate tables. What's
+valid per category is declared once in `CategorySchemaRegistry` and read by
+search, validation and (eventually) the frontend form — not re-encoded as
+`if (category == PROPERTY)` branches scattered through the codebase.
+
+The earlier RentNest property-only model (`Property`, `PropertyController`,
+`PropertyService`, ...) still exists and still works side by side with it;
+it hasn't been migrated onto the generic engine yet.
+
 ```
-src/main/java/com/rentnest/
+src/main/java/com/nestxchange/
 ├── config/          Security, CORS, Cloudinary, OpenAPI, async, dev seeding
 ├── controller/      REST endpoints under /api/v1
 ├── dto/             Request and response payloads (entities never cross the wire)
-├── entity/          JPA model
+├── entity/          JPA model - Property (legacy) and the generic Listing
 ├── event/           Application events + async listeners
 ├── exception/       Typed exceptions and the global handler
 ├── mapper/          Entity → DTO
 ├── repository/      Spring Data JPA + Criteria specifications
 ├── scheduler/       Nightly job expiring stale visit requests
+├── schema/          CategorySchemaRegistry + attribute validation
+├── search/          The unified listings search query builder
 ├── security/        JWT filter, token provider, principal, entry points
 ├── service/         Business logic (interface + impl)
+├── statemachine/    Shared AVAILABLE→...→CLOSED lifecycle, rent/sale handlers
 └── validation/      Custom bean-validation constraints
 
-rentnest-frontend/src/
+nestxchange-frontend/src/
 ├── api/             Axios client and the endpoint catalogue
 ├── components/      auth · layout · marketing · property · ui
 ├── context/         Auth, theme and toast providers
@@ -167,9 +185,16 @@ regardless of how they signed up, so permission to edit a listing or decide a
 visit request is checked against who owns it. Roles only distinguish staff
 (`ADMIN`) from everyone else.
 
-**Search runs entirely server-side.** Every filter the UI offers maps to a query
-parameter, built into a Criteria specification. Filters are mirrored into the
-URL, so a search is shareable and survives a refresh.
+**One search endpoint for every category.** `GET /api/v1/listings/search`
+handles PROPERTY and VEHICLE through the same query builder: universal
+filters (category, mode, price, location) plus a validated `attr.*` map,
+translated into JSONB `->>`/`@>` predicates - never a
+`searchProperties()`/`searchVehicles()` split.
+
+**Status only changes through the state machine.** `ListingStateMachineService`
+is the one place `AVAILABLE → REQUESTED → CONFIRMED → ACTIVE/COMPLETED →
+CLOSED` is enforced; rent vs. sale behaviour is a pluggable handler, not a
+second machine.
 
 **Owner contact details are gated.** The public listings feed never carries an
 owner's email, and phone numbers are revealed only to signed-in users on a
@@ -184,43 +209,55 @@ associations explicitly, which also removes several N+1 patterns.
 
 Base path `/api/v1`. Full interactive reference at `/swagger-ui.html`.
 
-### Public
+### Listings (category-agnostic: PROPERTY + VEHICLE)
 
-| Method | Path | Description |
-|---|---|---|
-| `POST` | `/auth/register` | Create a tenant or owner account |
-| `POST` | `/auth/login` | Exchange credentials for a token |
-| `GET` | `/properties` | Search listings (paginated) |
-| `GET` | `/properties/{id}` | One listing |
-| `GET` | `/properties/cities` | Cities with live listings |
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `GET` | `/listings/search` | Public | Search across every category via universal + `attr.*` filters |
+| `GET` | `/listings/{id}` | Public | A single listing |
+| `POST` | `/listings` | Bearer | Post a new listing |
+| `PUT` | `/listings/{id}` | Bearer, owner | Edit a listing you own |
+| `DELETE` | `/listings/{id}` | Bearer, owner | Delete a listing you own |
+| `GET` | `/listings/my-listings` | Bearer | Listings you've posted |
+| `POST` | `/listings/{id}/transitions` | Bearer | Fire a state-machine event: `REQUEST`, `CONFIRM`, `PROCEED`, `CLOSE` |
+| `GET` | `/listings/{id}/transitions` | Bearer | Transition/audit history for a listing |
+| `PATCH` | `/admin/listings/{id}/close` | Admin | Force-close a listing (moderation takedown) |
 
-### Requires a bearer token
+### Legacy property endpoints (pre-dates the generic Listing model)
 
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/auth/me` | Current user profile |
-| `POST` | `/properties` | Post a listing (multipart, with photos) |
-| `PUT` | `/properties/{id}` | Edit a listing you own |
-| `DELETE` | `/properties/{id}` | Delete a listing you own |
-| `GET` | `/properties/my-properties` | Your listings |
-| `GET` | `/properties/favorites` | Your shortlist |
-| `POST` | `/properties/{id}/favorite` | Toggle shortlist |
-| `POST` | `/visits` | Request a viewing |
-| `GET` | `/visits/my-requests` | Viewings you requested |
-| `GET` | `/visits/owner-requests` | Requests on your listings |
-| `PATCH` | `/visits/{id}/status` | Accept or reject a request |
-| `DELETE` | `/visits/{id}` | Withdraw your own request |
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `POST` | `/auth/register` | Public | Create a tenant or owner account |
+| `POST` | `/auth/login` | Public | Exchange credentials for a token |
+| `GET` | `/properties` | Public | Search listings (paginated) |
+| `GET` | `/properties/{id}` | Public | One listing |
+| `GET` | `/properties/cities` | Public | Cities with live listings |
+| `GET` | `/auth/me` | Bearer | Current user profile |
+| `POST` | `/properties` | Bearer | Post a listing (multipart, with photos) |
+| `PUT` | `/properties/{id}` | Bearer, owner | Edit a listing you own |
+| `DELETE` | `/properties/{id}` | Bearer, owner | Delete a listing you own |
+| `GET` | `/properties/my-properties` | Bearer | Your listings |
+| `GET` | `/properties/favorites` | Bearer | Your shortlist |
+| `POST` | `/properties/{id}/favorite` | Bearer | Toggle shortlist |
+| `POST` | `/visits` | Bearer | Request a viewing |
+| `GET` | `/visits/my-requests` | Bearer | Viewings you requested |
+| `GET` | `/visits/owner-requests` | Bearer | Requests on your listings |
+| `PATCH` | `/visits/{id}/status` | Bearer | Accept or reject a request |
+| `DELETE` | `/visits/{id}` | Bearer | Withdraw your own request |
+| `GET` | `/admin/properties/pending` | Admin | Listings awaiting moderation |
+| `PATCH` | `/admin/properties/{id}/approve` | Admin | Publish a held listing |
+| `PATCH` | `/admin/properties/{id}/verification` | Admin | Grant or revoke the verified badge |
+| `PATCH` | `/admin/properties/{id}/deactivate` | Admin | Take a listing offline |
 
-### Admin only
+### Listing search parameters
 
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/admin/properties/pending` | Listings awaiting moderation |
-| `PATCH` | `/admin/properties/{id}/approve` | Publish a held listing |
-| `PATCH` | `/admin/properties/{id}/verification` | Grant or revoke the verified badge |
-| `PATCH` | `/admin/properties/{id}/deactivate` | Take a listing offline |
+Universal: `category`, `mode`, `priceMin`, `priceMax`, `location`, `page`, `size`.
+Category-specific: `attr.<field>` (exact match), `attr.<field>_min` /
+`attr.<field>_max` (numeric range) — valid fields per category come from
+`CategorySchemaRegistry` (e.g. `attr.bedrooms`, `attr.mileage_max`,
+`attr.make`).
 
-### Search parameters
+### Legacy property search parameters
 
 `keyword`, `city`, `locality`, `minRent`, `maxRent`, `type` (repeatable),
 `bhk` (repeatable), `furnishing`, `tenant`, `verifiedOnly`, `negotiableOnly`,
@@ -237,8 +274,8 @@ user; 5xx responses carry a correlation reference instead of internal detail.
   "status": 400,
   "error": "Bad Request",
   "message": "Some of the details you entered are not valid.",
-  "path": "/api/v1/properties",
-  "fieldErrors": { "rentAmount": "Rent must be a positive multiple of 100..." }
+  "path": "/api/v1/listings",
+  "fieldErrors": { "price": "Price must be greater than zero" }
 }
 ```
 
@@ -249,7 +286,7 @@ user; 5xx responses carry a correlation reference instead of internal detail.
 ```bash
 mvn test                        # backend unit tests
 
-cd rentnest-frontend
+cd nestxchange-frontend
 npm run lint                    # ESLint, including the React hooks rules
 npm run build                   # production build
 ```
@@ -270,7 +307,7 @@ npm run build                   # production build
 - Exception messages are never echoed to clients on 5xx.
 
 **If this repository has ever been pushed anywhere, rotate the credentials that
-were previously committed in `application.yml`** — a MySQL password, a JWT
+were previously committed in `application.yml`** — a database password, a JWT
 signing secret and a Cloudinary API secret. They are removed from the working
 tree but remain in git history.
 
@@ -280,14 +317,20 @@ tree but remain in git history.
 
 Honest list of what is not built:
 
-- **No geocoding.** Listings store a city and locality but no coordinates. Map
-  markers are scattered deterministically around the city centre and labelled
-  as approximate.
-- **No schema migrations.** Hibernate manages the schema (`update` in dev,
-  `validate` in prod). Flyway or Liquibase is the right next step before this
-  handles real data.
-- **Photos cannot be changed after posting.** Editing a listing covers every
-  other field; image management needs its own endpoints.
+- **The legacy `Property` model and the generic `Listing` model coexist.**
+  Property listings created through `/properties` do not show up in
+  `/listings/search` and vice versa - they are two separate tables. Migrating
+  `Property` onto `Listing` (as a PROPERTY-category listing) is the natural
+  next step but hasn't been done.
+- **Listing-transition authorization is coarse.** Any authenticated user can
+  fire any state-machine event on any listing; there's no "who requested this
+  listing" concept yet to restrict `CONFIRM` to the owner, say.
+- **No geocoding.** Listings store a city/locality or free-text location but
+  no coordinates. Map markers (legacy property pages) are scattered
+  deterministically around the city centre and labelled as approximate.
+- **Photos cannot be changed after posting.** Editing a legacy property
+  listing covers every other field; image management needs its own endpoints.
+  The generic `Listing` model has no image support yet at all.
 - **Notifications are logged, not sent.** The visit-request listener is wired up
   end to end but stubs out the mail send.
 - **No refresh tokens.** Access tokens last 24 hours and the client signs the

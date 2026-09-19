@@ -11,11 +11,11 @@
 		<relativePath/>
 	</parent>
 
-	<groupId>com.rentnest</groupId>
-	<artifactId>rentnest-backend</artifactId>
+	<groupId>com.nestxchange</groupId>
+	<artifactId>nestxchange-backend</artifactId>
 	<version>0.1.0</version>
-	<name>rentnest-backend</name>
-	<description>Zero-brokerage property rental marketplace - REST API</description>
+	<name>nestxchange-backend</name>
+	<description>Multi-category marketplace - property and vehicle rent/buy/sell - REST API</description>
 
 	<properties>
 		<java.version>17</java.version>
@@ -49,14 +49,22 @@
 		</dependency>
 
 		<!--
-		  The PostgreSQL driver that used to sit here was never referenced: the
-		  datasource URL, driver class and Hibernate dialect are all MySQL. It has
-		  been dropped rather than shipped dead in every build.
+		  PostgreSQL: the listings table needs JSONB + a GIN index for the
+		  category-agnostic attribute search, which MySQL's JSON type can't match.
 		-->
 		<dependency>
-			<groupId>com.mysql</groupId>
-			<artifactId>mysql-connector-j</artifactId>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
 			<scope>runtime</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-database-postgresql</artifactId>
 		</dependency>
 
 		<!-- JJWT 0.12.x - 0.11.x is no longer maintained. -->

@@ -20,4 +20,4 @@ server:
 logging:
   level:
     root: WARN
-    com.rentnest: INFO
+    com.nestxchange: INFO

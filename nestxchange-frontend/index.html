@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- The old href pointed at /vite.svg, which lives in src/assets and was
+         therefore a 404 on every page load. -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content="#009688" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+
+    <title>NestXchange - Rent, buy or sell property and vehicles</title>
+    <meta
+      name="description"
+      content="One marketplace for property and vehicles - rent, buy or sell, with verified listings and direct owner contact."
+    />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="NestXchange" />
+    <meta property="og:title" content="NestXchange - Rent, buy or sell property and vehicles" />
+    <meta
+      property="og:description"
+      content="One marketplace for property and vehicles - rent, buy or sell, with verified listings and direct owner contact."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <script>
+      /*
+       * Apply the saved theme before the first paint.
+       *
+       * React applied it in an effect, which meant a dark-mode visitor saw a
+       * white flash on every page load. This runs synchronously in <head>, so
+       * the very first frame is already correct.
+       */
+      (function () {
+        try {
+          var stored = localStorage.getItem('nestxchange.theme');
+          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var isDark = stored ? stored === 'dark' : prefersDark;
+          document.documentElement.classList.toggle('dark', isDark);
+          document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+        } catch (e) {
+          /* Storage unavailable - fall back to the light theme. */
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>
+      <p style="padding: 2rem; font-family: system-ui, sans-serif">
+        NestXchange needs JavaScript enabled to show listings.
+      </p>
+    </noscript>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

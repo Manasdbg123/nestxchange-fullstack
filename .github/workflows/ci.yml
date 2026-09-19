@@ -43,7 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: rentnest-frontend
+        working-directory: nestxchange-frontend
     steps:
       - uses: actions/checkout@v4
 
@@ -51,7 +51,7 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-          cache-dependency-path: rentnest-frontend/package-lock.json
+          cache-dependency-path: nestxchange-frontend/package-lock.json
 
       - name: Install
         run: npm ci
