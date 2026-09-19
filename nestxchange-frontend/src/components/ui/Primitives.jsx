@@ -116,6 +116,8 @@ export function Modal({ open, onClose, title, description, children, size = 'md'
     const panelRef = useRef(null);
     const previouslyFocused = useRef(null);
     const titleId = useId();
+    const onCloseRef = useRef(onClose);
+    onCloseRef.current = onClose;
 
     useEffect(() => {
         if (!open) return undefined;
@@ -126,7 +128,7 @@ export function Modal({ open, onClose, title, description, children, size = 'md'
 
         const onKeyDown = (event) => {
             if (event.key === 'Escape') {
-                onClose?.();
+                onCloseRef.current?.();
                 return;
             }
             if (event.key !== 'Tab' || !panelRef.current) return;
@@ -160,7 +162,7 @@ export function Modal({ open, onClose, title, description, children, size = 'md'
             document.body.style.overflow = overflow;
             previouslyFocused.current?.focus?.();
         };
-    }, [open, onClose]);
+    }, [open]);
 
     if (!open) return null;
 
