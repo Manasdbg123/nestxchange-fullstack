@@ -27,9 +27,10 @@ const CATEGORY_MODE_LINKS = [
 ];
 
 const COMPANY_LINKS = [
-    { label: 'How NestXchange works', to: '/list-your-property#how-it-works' },
-    { label: 'List your property', to: '/list-your-property' },
+    { label: 'Post a property', to: '/create-listing?category=PROPERTY' },
+    { label: 'Post a vehicle', to: '/create-listing?category=VEHICLE' },
     { label: 'Browse listings', to: '/search' },
+    { label: 'Contact us', to: '/contact' },
 ];
 
 export default function Footer() {

@@ -12,12 +12,12 @@ import {
     Testimonials,
     ValueProps,
 } from '../components/marketing/Sections';
-import PropertyCard from '../components/property/PropertyCard';
-import PropertyCardSkeleton from '../components/property/PropertyCardSkeleton';
+import ListingCard from '../components/listings/ListingCard';
+import ListingCardSkeleton from '../components/listings/ListingCardSkeleton';
 import Icon from '../components/ui/Icon';
 import usePageMeta from '../hooks/usePageMeta';
-import useFavorites from '../hooks/useFavorites';
-import { propertyApi } from '../api/endpoints';
+import useListingFavorites from '../hooks/useListingFavorites';
+import { listingApi } from '../api/endpoints';
 import { BROWSE_MODES } from '../lib/constants';
 
 /**
@@ -34,23 +34,18 @@ export default function Home() {
             'Explore homes and vehicles to rent or buy, all in one trusted marketplace. Talk to owners directly and pay no brokerage.',
     });
 
-    const { isFavorited, toggleFavorite } = useFavorites();
-    const [cities, setCities] = useState([]);
+    const { isFavorited, toggleFavorite } = useListingFavorites();
+    const [cities] = useState(['Bengaluru', 'Mumbai', 'Pune', 'Delhi', 'Hyderabad']);
     const [featured, setFeatured] = useState([]);
     const [loadingFeatured, setLoadingFeatured] = useState(true);
 
     useEffect(() => {
         let cancelled = false;
 
-        propertyApi
-            .popularCities(6)
-            .then((result) => !cancelled && setCities(result))
-            .catch(() => {
-                /* The hero still works without city shortcuts. */
-            });
-
-        propertyApi
-            .search({ verifiedOnly: true, sortBy: 'newest' }, { page: 0, size: 6 })
+        // No category filter: this intentionally mixes properties and
+        // vehicles so the home page reflects both marketplaces, not just one.
+        listingApi
+            .search({}, { page: 0, size: 6 })
             .then((result) => !cancelled && setFeatured(result.content ?? []))
             .catch(() => !cancelled && setFeatured([]))
             .finally(() => !cancelled && setLoadingFeatured(false));
@@ -140,8 +135,8 @@ export default function Home() {
                     <SectionHeading
                         align="left"
                         eyebrow="Handpicked"
-                        title="Verified homes, ready to move into"
-                        description="Every listing below has been checked by our team and is available for viewing now."
+                        title="Fresh on NestXchange"
+                        description="The newest properties and vehicles listed by real owners, mixed together right here."
                     />
                     <Link to="/search" className="btn-secondary btn-md">
                         See all listings
@@ -152,26 +147,25 @@ export default function Home() {
                 {loadingFeatured ? (
                     <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                         {[0, 1, 2].map((key) => (
-                            <PropertyCardSkeleton key={key} layout="grid" />
+                            <ListingCardSkeleton key={key} />
                         ))}
                     </div>
                 ) : featured.length === 0 ? (
                     <div className="surface px-6 py-12 text-center">
                         <p className="text-sm text-ink-500 dark:text-ink-400">
-                            No verified listings are live right now. Browse everything on offer instead.
+                            No listings are live right now. Browse everything on offer instead.
                         </p>
                         <Link to="/search" className="btn-brand btn-md mt-5">
-                            Browse all rentals
+                            Browse all listings
                         </Link>
                     </div>
                 ) : (
                     <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-                        {featured.map((property) => (
-                            <PropertyCard
-                                key={property.id}
-                                property={property}
-                                layout="grid"
-                                isFavorited={isFavorited(property.id)}
+                        {featured.map((listing) => (
+                            <ListingCard
+                                key={listing.id}
+                                listing={listing}
+                                isFavorited={isFavorited(listing.id)}
                                 onToggleFavorite={toggleFavorite}
                             />
                         ))}
@@ -184,8 +178,8 @@ export default function Home() {
                 <div className="container-page">
                     <SectionHeading
                         eyebrow="Why NestXchange"
-                        title="Renting, without the middleman tax"
-                        description="Brokerage in most Indian cities costs a full month's rent. Here, it costs nothing - because there is no broker."
+                        title="No middleman, on property or vehicles"
+                        description="Brokerage and dealer markups eat into every deal. Here, you deal directly with the owner - for a house or a car - so there's nothing extra to pay."
                     />
 
                     <div className="mt-12">
@@ -193,9 +187,9 @@ export default function Home() {
                             items={[
                                 {
                                     icon: 'wallet',
-                                    title: 'Save a month of rent',
+                                    title: 'Skip the brokerage',
                                     description:
-                                        'You deal with the owner directly, so there is no brokerage to pay at any stage of the process.',
+                                        'You deal with the owner directly, so there is no brokerage or dealer commission to pay at any stage.',
                                 },
                                 {
                                     icon: 'shield',
@@ -207,11 +201,11 @@ export default function Home() {
                                     icon: 'phone',
                                     title: 'Talk to the actual owner',
                                     description:
-                                        'Contact details belong to the person who owns the property, not to a call centre reselling your number.',
+                                        'Contact details belong to the person who owns the property or vehicle, not to a call centre reselling your number.',
                                 },
                                 {
                                     icon: 'calendar',
-                                    title: 'Book visits in the app',
+                                    title: 'Book visits or test drives',
                                     description:
                                         'Pick a slot that suits you and the owner confirms or suggests another. No endless phone tag.',
                                 },
@@ -219,13 +213,13 @@ export default function Home() {
                                     icon: 'filter',
                                     title: 'Filters that actually filter',
                                     description:
-                                        'Budget, BHK, furnishing, tenant preference and move-in date all narrow the results properly.',
+                                        'Budget and configuration for a home, or make, mileage and year for a vehicle - each category narrows results on what actually matters.',
                                 },
                                 {
                                     icon: 'sparkles',
                                     title: 'Free to list',
                                     description:
-                                        'Owners post as many properties as they like at no cost, with photos, amenities and availability.',
+                                        'Owners post as many properties or vehicles as they like at no cost, with photos and full details.',
                                 },
                             ]}
                         />
@@ -245,17 +239,17 @@ export default function Home() {
                             {
                                 title: 'Search and shortlist',
                                 description:
-                                    'Filter by locality, budget and configuration, then save the homes you like to your shortlist.',
+                                    'Filter by location, budget and configuration, then save the properties or vehicles you like to your shortlist.',
                             },
                             {
                                 title: 'Contact the owner',
                                 description:
-                                    'Reveal the owner\'s number and request a viewing at a time that works for both of you.',
+                                    'Reveal the owner\'s number and request a viewing or test drive at a time that works for both of you.',
                             },
                             {
                                 title: 'Close the deal directly',
                                 description:
-                                    'Agree the rent and deposit with the owner and move in. No brokerage changes hands.',
+                                    'Agree the price directly with the owner and complete the deal. No brokerage changes hands.',
                             },
                         ]}
                     />
@@ -282,6 +276,13 @@ export default function Home() {
                                     city: 'Pune',
                                     quote:
                                         'Listing was free and took about ten minutes. I had four genuine visit requests in the first week and let out the flat by the end of the month.',
+                                },
+                                {
+                                    name: 'Rohit Malhotra',
+                                    role: 'Buyer',
+                                    city: 'Delhi',
+                                    quote:
+                                        'Bought a used sedan straight from the owner - saw the service history, took it for a test drive, and closed the deal without a dealer markup anywhere in between.',
                                 },
                                 {
                                     name: 'Fatima Sheikh',
@@ -341,12 +342,12 @@ export default function Home() {
                                 {
                                     question: 'Do I need an account to see listings?',
                                     answer:
-                                        'No. Every listing page is public. You only need an account to save a shortlist, reveal an owner\'s phone number, request a visit, or post a property of your own.',
+                                        'No. Every listing page is public. You only need an account to save a shortlist, reveal an owner\'s phone number, request a visit, or post a property or vehicle of your own.',
                                 },
                                 {
-                                    question: 'How do I list my property?',
+                                    question: 'How do I list a property or vehicle?',
                                     answer:
-                                        'Create a free account, click "Post property free", and fill in the details along with a few photos. Your listing goes live straight away and you can edit or pause it at any time.',
+                                        'Create a free account, click "Post a listing free" in the navigation bar, choose Property or Vehicle, and fill in the details along with a few photos. Your listing goes live straight away and you can edit or pause it at any time.',
                                 },
                                 {
                                     question: 'How does NestXchange make money then?',
@@ -362,9 +363,9 @@ export default function Home() {
             {/* ----------------------------------------------------------- CTA */}
             <section className="container-page pb-8">
                 <CtaBanner
-                    title="Have a property sitting empty?"
-                    description="List it in a few minutes, reach tenants directly, and keep the brokerage you would otherwise have paid."
-                    primary={{ to: '/list-your-property', label: 'List your property free' }}
+                    title="Have a property or vehicle sitting idle?"
+                    description="List it in a few minutes, reach buyers or tenants directly, and keep the brokerage you would otherwise have paid."
+                    primary={{ to: '/create-listing', label: 'Post a listing free' }}
                     secondary={{ to: '/search', label: 'Browse listings instead' }}
                 />
             </section>
