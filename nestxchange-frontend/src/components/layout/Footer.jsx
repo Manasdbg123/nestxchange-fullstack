@@ -11,7 +11,7 @@ import Icon from '../ui/Icon';
  * property marketplace uses to get its listing pages indexed.
  */
 
-const CITIES = ['Bengaluru', 'Mumbai', 'Pune', 'Delhi', 'Hyderabad', 'Chennai'];
+const CITIES = ['Patna', 'Darbhanga', 'Muzaffarpur', 'Madhubani', 'Bhagalpur', 'Gaya'];
 
 // category/mode combinations, mirroring the landing page's selector - the
 // unified search page (/search) reads `category`/`mode`, not the old

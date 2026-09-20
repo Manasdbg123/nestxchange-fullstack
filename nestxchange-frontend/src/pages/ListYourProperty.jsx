@@ -271,21 +271,21 @@ export default function ListYourProperty() {
                             {
                                 name: 'Arun Prakash',
                                 role: 'Owner',
-                                city: 'Pune',
+                                city: 'Darbhanga',
                                 quote:
                                     'Listing was free and took about ten minutes. Four genuine visit requests in the first week, and the flat was let out by the end of the month.',
                             },
                             {
                                 name: 'Meera Nair',
                                 role: 'Owner',
-                                city: 'Bengaluru',
+                                city: 'Madhubani',
                                 quote:
                                     'What I liked most was not getting twenty broker calls the moment I posted. Only actual tenants reached me.',
                             },
                             {
                                 name: 'Vikram Shah',
                                 role: 'Owner',
-                                city: 'Mumbai',
+                                city: 'Muzaffarpur',
                                 quote:
                                     'I manage three properties and being able to pause a listing the moment it is rented, instead of fielding calls for weeks, is worth a lot.',
                             },

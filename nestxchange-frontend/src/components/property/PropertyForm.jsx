@@ -191,7 +191,7 @@ export default function PropertyForm({
                 <Field
                     label="City"
                     required
-                    placeholder="Bengaluru"
+                    placeholder="Patna"
                     autoComplete="address-level2"
                     value={values.city}
                     onChange={set('city')}

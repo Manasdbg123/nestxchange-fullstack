@@ -35,7 +35,7 @@ export default function Home() {
     });
 
     const { isFavorited, toggleFavorite } = useListingFavorites();
-    const [cities] = useState(['Bengaluru', 'Mumbai', 'Pune', 'Delhi', 'Hyderabad']);
+    const [cities] = useState(['Patna', 'Darbhanga', 'Muzaffarpur', 'Madhubani', 'Bhagalpur']);
     const [featured, setFeatured] = useState([]);
     const [loadingFeatured, setLoadingFeatured] = useState(true);
 
@@ -122,7 +122,7 @@ export default function Home() {
                 <StatStrip
                     stats={[
                         { value: '₹0', label: 'Brokerage, on every listing' },
-                        { value: '5 cities', label: 'And growing across India' },
+                        { value: '5 cities', label: 'And growing across Bihar' },
                         { value: '24 hrs', label: 'Typical owner response time' },
                         { value: '100%', label: 'Listings posted by owners' },
                     ]}
@@ -266,28 +266,28 @@ export default function Home() {
                                 {
                                     name: 'Sneha Ramesh',
                                     role: 'Tenant',
-                                    city: 'Bengaluru',
+                                    city: 'Patna',
                                     quote:
-                                        'I found a 2 BHK in Indiranagar in under two weeks and saved the brokerage entirely. Talking to the owner from the start made the whole thing far less stressful.',
+                                        'I found a 2 BHK near Boring Road in under two weeks and saved the brokerage entirely. Talking to the owner from the start made the whole thing far less stressful.',
                                 },
                                 {
                                     name: 'Arun Prakash',
                                     role: 'Owner',
-                                    city: 'Pune',
+                                    city: 'Darbhanga',
                                     quote:
                                         'Listing was free and took about ten minutes. I had four genuine visit requests in the first week and let out the flat by the end of the month.',
                                 },
                                 {
                                     name: 'Rohit Malhotra',
                                     role: 'Buyer',
-                                    city: 'Delhi',
+                                    city: 'Muzaffarpur',
                                     quote:
                                         'Bought a used sedan straight from the owner - saw the service history, took it for a test drive, and closed the deal without a dealer markup anywhere in between.',
                                 },
                                 {
                                     name: 'Fatima Sheikh',
                                     role: 'Tenant',
-                                    city: 'Mumbai',
+                                    city: 'Madhubani',
                                     quote:
                                         'The filters were the difference. Being able to narrow down to furnished, family-friendly places available immediately saved me a lot of wasted visits.',
                                 },
@@ -299,10 +299,10 @@ export default function Home() {
 
             {/* -------------------------------------------------------- Browse */}
             <section className="container-page py-16">
-                <SectionHeading align="left" eyebrow="Explore" title="Browse across India" />
+                <SectionHeading align="left" eyebrow="Explore" title="Browse across Bihar" />
                 <div className="mt-8">
                     <BrowseLinks
-                        cities={(cities.length ? cities : ['Bengaluru', 'Mumbai', 'Pune', 'Delhi', 'Hyderabad']).map(
+                        cities={(cities.length ? cities : ['Patna', 'Darbhanga', 'Muzaffarpur', 'Madhubani', 'Bhagalpur']).map(
                             (city) => ({
                                 label: `Listings in ${city}`,
                                 to: `/search?location=${encodeURIComponent(city)}`,

@@ -99,16 +99,14 @@ export const AMENITY_OPTIONS = [
 
 /** Used to place map markers; the API does not yet store coordinates. */
 export const CITY_COORDINATES = {
-    Bengaluru: [12.9716, 77.5946],
-    Mumbai: [19.076, 72.8777],
-    Pune: [18.5204, 73.8567],
-    Delhi: [28.7041, 77.1025],
-    Hyderabad: [17.385, 78.4867],
-    Chennai: [13.0827, 80.2707],
-    Kolkata: [22.5726, 88.3639],
-    Ahmedabad: [23.0225, 72.5714],
-    Gurgaon: [28.4595, 77.0266],
-    Noida: [28.5355, 77.391],
+    Patna: [25.5941, 85.1376],
+    Darbhanga: [26.1542, 85.8918],
+    Muzaffarpur: [26.1225, 85.3906],
+    Madhubani: [26.3477, 86.0716],
+    Bhagalpur: [25.2425, 86.9842],
+    Gaya: [24.7955, 84.9994],
+    Purnia: [25.7771, 87.4753],
+    Chhapra: [25.7815, 84.7278],
 };
 
 export const INDIA_CENTRE = [20.5937, 78.9629];
