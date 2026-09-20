@@ -16,6 +16,9 @@ export const authApi = {
     login: (credentials) => api.post('/auth/login', credentials).then((r) => r.data),
     register: (details) => api.post('/auth/register', details).then((r) => r.data),
     me: () => api.get('/auth/me').then((r) => r.data),
+    forgotPassword: (email) => api.post('/auth/forgot-password', { email }).then((r) => r.data),
+    resetPassword: (token, newPassword) =>
+        api.post('/auth/reset-password', { token, newPassword }).then((r) => r.data),
 };
 
 /** Drops empty values so the URL carries only filters the user actually set. */

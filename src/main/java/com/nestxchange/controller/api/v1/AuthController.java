@@ -1,7 +1,9 @@
 package com.nestxchange.controller.api.v1;
 
+import com.nestxchange.dto.request.ForgotPasswordRequest;
 import com.nestxchange.dto.request.LoginRequest;
 import com.nestxchange.dto.request.RegisterRequest;
+import com.nestxchange.dto.request.ResetPasswordRequest;
 import com.nestxchange.dto.response.AuthResponse;
 import com.nestxchange.dto.response.UserResponse;
 import com.nestxchange.security.UserPrincipal;
@@ -43,5 +45,19 @@ public class AuthController {
     @Operation(summary = "Profile of the caller, used by the web client to rehydrate a session")
     public ResponseEntity<UserResponse> currentUser(@AuthenticationPrincipal UserPrincipal currentUser) {
         return ResponseEntity.ok(authService.getCurrentUser(currentUser.getId()));
+    }
+
+    @PostMapping("/forgot-password")
+    @Operation(summary = "Request a password reset email. Always responds the same way, whether or not the address is registered.")
+    public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/reset-password")
+    @Operation(summary = "Complete a password reset using the token emailed to the user")
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request);
+        return ResponseEntity.ok().build();
     }
 }

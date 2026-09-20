@@ -4,6 +4,7 @@ import com.nestxchange.security.CustomUserDetailsService;
 import com.nestxchange.security.JwtAccessDeniedHandler;
 import com.nestxchange.security.JwtAuthenticationEntryPoint;
 import com.nestxchange.security.JwtAuthenticationFilter;
+import com.nestxchange.security.RateLimitingFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,6 +31,7 @@ public class SecurityConfig {
 
     private final CustomUserDetailsService customUserDetailsService;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final RateLimitingFilter rateLimitingFilter;
     private final JwtAuthenticationEntryPoint authenticationEntryPoint;
     private final JwtAccessDeniedHandler accessDeniedHandler;
     private final CorsConfigurationSource corsConfigurationSource;
@@ -66,8 +68,13 @@ public class SecurityConfig {
                         // as a Cloudinary-hosted image URL would have.
                         .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
 
-                        // Anonymous sign-up and sign-in.
-                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login").permitAll()
+                        // Anonymous sign-up, sign-in and password reset - all three
+                        // are only reachable by someone who isn't signed in yet.
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/v1/auth/register",
+                                "/api/v1/auth/login",
+                                "/api/v1/auth/forgot-password",
+                                "/api/v1/auth/reset-password").permitAll()
 
                         // Public browsing: search, schemas and a single listing by
                         // numeric id. /my-listings isn't numeric so it never matches
@@ -80,7 +87,10 @@ public class SecurityConfig {
 
                         .anyRequest().authenticated())
                 .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                // Runs before authentication is even attempted, so a rate-limited
+                // request never reaches the DB to check credentials at all.
+                .addFilterBefore(rateLimitingFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }

@@ -27,6 +27,7 @@ const MyListings = lazy(() => import('./pages/MyListings'));
 const ListingFavorites = lazy(() => import('./pages/ListingFavorites'));
 const SentInquiries = lazy(() => import('./pages/SentInquiries'));
 const ListingDetails = lazy(() => import('./pages/ListingDetails'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const Contact = lazy(() => import('./pages/Contact'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const TermsOfUse = lazy(() => import('./pages/TermsOfUse'));
@@ -70,6 +71,7 @@ export default function App() {
                                 to see one, and owner contact details are gated
                                 on the detail page itself, not the route. */}
                             <Route path="/listings/:id" element={<ListingDetails />} />
+                            <Route path="/reset-password" element={<ResetPassword />} />
                             <Route path="/contact" element={<Contact />} />
                             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                             <Route path="/terms-of-use" element={<TermsOfUse />} />

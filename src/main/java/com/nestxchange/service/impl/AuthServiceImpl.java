@@ -1,18 +1,24 @@
 package com.nestxchange.service.impl;
 
+import com.nestxchange.dto.request.ForgotPasswordRequest;
 import com.nestxchange.dto.request.LoginRequest;
 import com.nestxchange.dto.request.RegisterRequest;
+import com.nestxchange.dto.request.ResetPasswordRequest;
 import com.nestxchange.dto.response.AuthResponse;
 import com.nestxchange.dto.response.UserResponse;
+import com.nestxchange.entity.PasswordResetToken;
 import com.nestxchange.entity.User;
 import com.nestxchange.exception.BusinessValidationException;
 import com.nestxchange.exception.ResourceNotFoundException;
+import com.nestxchange.repository.PasswordResetTokenRepository;
 import com.nestxchange.repository.UserRepository;
 import com.nestxchange.security.JwtTokenProvider;
 import com.nestxchange.security.UserPrincipal;
 import com.nestxchange.service.AuthService;
+import com.nestxchange.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -20,17 +26,34 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
+import java.util.Base64;
+import java.util.HexFormat;
 import java.util.Locale;
+import java.util.Optional;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
+    private static final int TOKEN_BYTES = 32;
+    private static final long TOKEN_VALID_MINUTES = 30;
+
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final EmailService emailService;
+    private final SecureRandom secureRandom = new SecureRandom();
+
+    @Value("${app.frontend-url:http://localhost:5173}")
+    private String frontendUrl;
 
     @Override
     public AuthResponse login(LoginRequest request) {
@@ -86,6 +109,80 @@ public class AuthServiceImpl implements AuthService {
                 .role(user.getRole().name())
                 .createdAt(user.getCreatedAt())
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public void forgotPassword(ForgotPasswordRequest request) {
+        String email = normaliseEmail(request.getEmail());
+        Optional<User> user = userRepository.findByEmail(email);
+
+        // A different outcome for "no such user" would let a caller enumerate
+        // registered emails one guess at a time, so this returns exactly the
+        // same way whether or not the account exists - the branch below only
+        // decides whether an email actually goes out.
+        if (user.isEmpty()) {
+            log.info("Password reset requested for unknown email");
+            return;
+        }
+
+        String rawToken = generateToken();
+        PasswordResetToken resetToken = PasswordResetToken.builder()
+                .userId(user.get().getId())
+                .tokenHash(hashToken(rawToken))
+                .expiresAt(LocalDateTime.now().plusMinutes(TOKEN_VALID_MINUTES))
+                .build();
+        passwordResetTokenRepository.save(resetToken);
+
+        String resetLink = frontendUrl + "/reset-password?token=" + rawToken;
+        String html = "<p>Someone requested a password reset for your NestXchange account.</p>"
+                + "<p><a href=\"" + resetLink + "\">Click here to choose a new password</a>. "
+                + "This link expires in " + TOKEN_VALID_MINUTES + " minutes.</p>"
+                + "<p>If you didn't request this, you can safely ignore this email.</p>";
+
+        emailService.send(user.get().getEmail(), "Reset your NestXchange password", html);
+        log.info("Password reset email queued for user id={}", user.get().getId());
+    }
+
+    @Override
+    @Transactional
+    public void resetPassword(ResetPasswordRequest request) {
+        String tokenHash = hashToken(request.getToken());
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByTokenHash(tokenHash)
+                .orElseThrow(() -> new BusinessValidationException("This reset link is invalid or has already been used."));
+
+        if (resetToken.isUsed() || resetToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new BusinessValidationException("This reset link is invalid or has expired. Please request a new one.");
+        }
+
+        User user = userRepository.findById(resetToken.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", resetToken.getUserId()));
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        resetToken.setUsed(true);
+        passwordResetTokenRepository.save(resetToken);
+
+        log.info("Password reset completed for user id={}", user.getId());
+    }
+
+    private String generateToken() {
+        byte[] bytes = new byte[TOKEN_BYTES];
+        secureRandom.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    private String hashToken(String rawToken) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(rawToken.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException ex) {
+            // SHA-256 is guaranteed to be available on every JVM (JLS/JCA
+            // standard algorithm), so this can only mean a broken runtime.
+            throw new IllegalStateException("SHA-256 is not available", ex);
+        }
     }
 
     private AuthResponse toAuthResponse(User user, String token) {

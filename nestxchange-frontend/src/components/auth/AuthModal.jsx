@@ -4,6 +4,7 @@ import { Alert, Field, Modal, Spinner } from '../ui/Primitives';
 import Icon from '../ui/Icon';
 import { useAuth } from '../../context/contexts';
 import { useToast } from '../../context/contexts';
+import { authApi } from '../../api/endpoints';
 import { toErrorMessage, toFieldErrors } from '../../api/client';
 
 /**
@@ -29,13 +30,17 @@ export default function AuthModal() {
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState('');
     const [fieldErrors, setFieldErrors] = useState({});
+    const [resetSent, setResetSent] = useState(false);
 
     const open = Boolean(authPrompt);
     const isLogin = mode === 'login';
+    const isForgot = mode === 'forgot';
 
     const close = () => {
         setFormError('');
         setFieldErrors({});
+        setResetSent(false);
+        setMode('login');
         closeAuthPrompt();
     };
 
@@ -51,6 +56,16 @@ export default function AuthModal() {
         setFieldErrors({});
 
         try {
+            if (isForgot) {
+                await authApi.forgotPassword(form.email);
+                // Same message whether or not the address is registered - the
+                // backend already responds identically either way, so showing a
+                // different message here would give back the enumeration signal
+                // the API deliberately withholds.
+                setResetSent(true);
+                return;
+            }
+
             if (isLogin) {
                 await login({ email: form.email, password: form.password });
             } else {
@@ -75,17 +90,38 @@ export default function AuthModal() {
         }
     };
 
+    const title = isForgot ? 'Reset your password' : isLogin ? 'Sign in to NestXchange' : 'Create your free account';
+
     return (
-        <Modal
-            open={open}
-            onClose={close}
-            title={isLogin ? 'Sign in to NestXchange' : 'Create your free account'}
-            description={authPrompt?.reason}
-        >
+        <Modal open={open} onClose={close} title={title} description={authPrompt?.reason}>
+            {isForgot && resetSent ? (
+                <div className="space-y-4 px-6 py-6">
+                    <Alert tone="success">
+                        If an account exists for that email, we've sent a link to reset your password. It expires in
+                        30 minutes.
+                    </Alert>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setMode('login');
+                            setResetSent(false);
+                        }}
+                        className="btn-secondary btn-md w-full"
+                    >
+                        Back to sign in
+                    </button>
+                </div>
+            ) : (
             <form onSubmit={handleSubmit} className="space-y-4 px-6 py-6" noValidate>
                 {formError ? <Alert tone="error">{formError}</Alert> : null}
 
-                {!isLogin ? (
+                {isForgot ? (
+                    <p className="text-sm text-ink-500 dark:text-ink-400">
+                        Enter the email on your account and we'll send you a link to choose a new password.
+                    </p>
+                ) : null}
+
+                {!isLogin && !isForgot ? (
                     <>
                         <Field
                             label="Full name"
@@ -140,19 +176,35 @@ export default function AuthModal() {
                     error={fieldErrors.email}
                 />
 
-                <Field
-                    label="Password"
-                    type="password"
-                    required
-                    autoComplete={isLogin ? 'current-password' : 'new-password'}
-                    placeholder="••••••••"
-                    value={form.password}
-                    onChange={update('password')}
-                    error={fieldErrors.password}
-                    hint={isLogin ? undefined : 'At least 8 characters, with a letter and a number.'}
-                />
+                {!isForgot ? (
+                    <Field
+                        label="Password"
+                        type="password"
+                        required
+                        autoComplete={isLogin ? 'current-password' : 'new-password'}
+                        placeholder="••••••••"
+                        value={form.password}
+                        onChange={update('password')}
+                        error={fieldErrors.password}
+                        hint={isLogin ? undefined : 'At least 8 characters, with a letter and a number.'}
+                    />
+                ) : null}
 
-                {!isLogin ? (
+                {isLogin ? (
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setMode('forgot');
+                            setFormError('');
+                            setFieldErrors({});
+                        }}
+                        className="-mt-2 block text-xs font-semibold text-accent-600 hover:underline dark:text-accent-400"
+                    >
+                        Forgot password?
+                    </button>
+                ) : null}
+
+                {!isLogin && !isForgot ? (
                     <Field
                         label="Mobile number"
                         type="tel"
@@ -168,24 +220,41 @@ export default function AuthModal() {
 
                 <button type="submit" disabled={submitting} className="btn-brand btn-md w-full">
                     {submitting ? <Spinner className="h-4 w-4" /> : null}
-                    {isLogin ? 'Sign in' : 'Create account'}
+                    {isForgot ? 'Send reset link' : isLogin ? 'Sign in' : 'Create account'}
                 </button>
 
                 <p className="pt-2 text-center text-sm text-ink-500 dark:text-ink-400">
-                    {isLogin ? "Don't have an account? " : 'Already have an account? '}
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setMode(isLogin ? 'register' : 'login');
-                            setFormError('');
-                            setFieldErrors({});
-                        }}
-                        className="font-semibold text-accent-600 hover:underline dark:text-accent-400"
-                    >
-                        {isLogin ? 'Sign up free' : 'Sign in'}
-                    </button>
+                    {isForgot ? (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setMode('login');
+                                setFormError('');
+                                setFieldErrors({});
+                            }}
+                            className="font-semibold text-accent-600 hover:underline dark:text-accent-400"
+                        >
+                            Back to sign in
+                        </button>
+                    ) : (
+                        <>
+                            {isLogin ? "Don't have an account? " : 'Already have an account? '}
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setMode(isLogin ? 'register' : 'login');
+                                    setFormError('');
+                                    setFieldErrors({});
+                                }}
+                                className="font-semibold text-accent-600 hover:underline dark:text-accent-400"
+                            >
+                                {isLogin ? 'Sign up free' : 'Sign in'}
+                            </button>
+                        </>
+                    )}
                 </p>
             </form>
+            )}
         </Modal>
     );
 }

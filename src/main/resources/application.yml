@@ -68,6 +68,21 @@ app:
   # Used to build absolute URLs for locally-stored images (the no-Cloudinary
   # fallback in CloudinaryServiceImpl) - irrelevant once Cloudinary is set up.
   public-base-url: ${APP_PUBLIC_BASE_URL:http://localhost:${server.port}}
+  # The deployed frontend origin - used to build the link inside a
+  # password-reset email. Not the same as cors.allowed-origins, which can
+  # list more than one origin; this is specifically "where should the link
+  # in an outbound email point."
+  frontend-url: ${APP_FRONTEND_URL:http://localhost:5173}
+  rate-limit:
+    max-requests: ${RATE_LIMIT_MAX_REQUESTS:10}
+    window-seconds: ${RATE_LIMIT_WINDOW_SECONDS:300}
+  email:
+    # Resend's API. api-key is deliberately left blank here - with none set,
+    # ResendEmailServiceImpl logs the email instead of sending it (see its
+    # own doc comment), so password reset still works end-to-end in local
+    # dev without a real account.
+    api-key: ${RESEND_API_KEY:}
+    from: ${EMAIL_FROM:NestXchange <onboarding@resend.dev>}
   upload:
     local-dir: ${UPLOAD_LOCAL_DIR:uploads}
   jwt:
