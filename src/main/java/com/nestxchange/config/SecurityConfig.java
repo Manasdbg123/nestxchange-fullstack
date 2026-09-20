@@ -69,27 +69,10 @@ public class SecurityConfig {
                         // Anonymous sign-up and sign-in.
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login").permitAll()
 
-                        // These MUST be declared before the public GET rule below.
-                        // Previously a blanket `GET /api/v1/properties/**` permitAll
-                        // also matched /favorites and /my-properties, so anonymous
-                        // callers reached controller methods that dereference the
-                        // authenticated principal and crashed with a 500.
-                        .requestMatchers(
-                                "/api/v1/properties/favorites",
-                                "/api/v1/properties/my-properties").authenticated()
-
-                        // Public browsing: the search listing and a single listing
-                        // by numeric id. Everything else under /properties requires
-                        // a session (favouriting, posting, editing, deleting).
-                        .requestMatchers(HttpMethod.GET,
-                                "/api/v1/properties",
-                                "/api/v1/properties/cities",
-                                "/api/v1/properties/{id:[0-9]+}").permitAll()
-
-                        // Unified listing browsing is public, same as property search.
-                        // /my-listings isn't numeric so it never matches the {id} pattern
-                        // below; it still falls through to the anyRequest().authenticated()
-                        // rule, same as /favorites and /my-properties above.
+                        // Public browsing: search, schemas and a single listing by
+                        // numeric id. /my-listings isn't numeric so it never matches
+                        // the {id} pattern here; it falls through to the
+                        // anyRequest().authenticated() rule below, same as /favorites.
                         .requestMatchers(HttpMethod.GET,
                                 "/api/v1/listings/search",
                                 "/api/v1/listings/schemas",

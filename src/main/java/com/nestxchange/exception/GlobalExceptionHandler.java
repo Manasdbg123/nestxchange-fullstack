@@ -18,6 +18,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -119,6 +120,16 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(NoHandlerFoundException.class)
     public ResponseEntity<ApiError> handleNoHandler(NoHandlerFoundException ex, HttpServletRequest request) {
+        return build(HttpStatus.NOT_FOUND, "No endpoint matches this request.", request);
+    }
+
+    // Spring resolves an unmapped API path to this (not NoHandlerFoundException
+    // above) because it falls through to the catch-all static-resource handler
+    // before giving up. Without this, every genuinely unmapped route - a typo,
+    // or a since-removed endpoint like the old /api/v1/properties - fell
+    // through to handleUnexpected() and came back as a misleading 500.
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiError> handleNoResource(NoResourceFoundException ex, HttpServletRequest request) {
         return build(HttpStatus.NOT_FOUND, "No endpoint matches this request.", request);
     }
 

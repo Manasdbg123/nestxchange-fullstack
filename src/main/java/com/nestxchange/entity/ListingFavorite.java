@@ -17,10 +17,9 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 /**
- * A user's shortlist entry for a {@link Listing} - the generic-engine
- * equivalent of the legacy {@code Favorite} entity, which only covers
- * {@code Property}. Raw FK columns, matching every other generic-engine
- * entity this session (no {@code @ManyToOne}).
+ * A user's shortlist entry for a {@link Listing}, covering every category.
+ * Raw FK columns, matching every other generic-engine entity (no
+ * {@code @ManyToOne}).
  */
 @Entity
 @Table(name = "listing_favorites", uniqueConstraints = {

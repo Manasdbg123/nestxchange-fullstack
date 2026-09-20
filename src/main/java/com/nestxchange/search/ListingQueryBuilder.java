@@ -78,6 +78,10 @@ public class ListingQueryBuilder {
             params.add("%" + escapeLike(request.location().trim()) + "%");
         }
 
+        if (Boolean.TRUE.equals(request.verifiedOnly())) {
+            where.append(" AND verified = true");
+        }
+
         appendAttributeFilters(request, where, params);
 
         return new Built(where.toString(), params);

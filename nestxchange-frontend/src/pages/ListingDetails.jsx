@@ -213,6 +213,11 @@ export default function ListingDetails() {
                             </span>
                             <span className="chip chip-active">{humanise(listing.mode)}</span>
                             {statusBadge ? <Badge tone={statusBadge.tone}>{statusBadge.label}</Badge> : null}
+                            {listing.verified ? (
+                                <Badge tone="success" icon="shield">
+                                    Verified
+                                </Badge>
+                            ) : null}
                         </div>
 
                         <div className="mt-4 flex items-start justify-between gap-3">

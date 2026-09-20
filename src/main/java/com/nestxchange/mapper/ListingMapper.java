@@ -26,6 +26,7 @@ public final class ListingMapper {
                 .price(listing.getPrice())
                 .location(listing.getLocation())
                 .status(listing.getStatus())
+                .verified(listing.isVerified())
                 .attributes(listing.getAttributes())
                 .createdAt(listing.getCreatedAt())
                 .updatedAt(listing.getUpdatedAt())

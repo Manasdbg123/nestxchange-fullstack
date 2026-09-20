@@ -95,6 +95,13 @@ public class Listing {
     @Column(nullable = false, length = 20)
     private ListingStatus status;
 
+    // Only ever set through the admin verification endpoint - never
+    // settable via the public create/update payload, so a listing can't
+    // self-declare itself verified.
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean verified = false;
+
     // Category-specific fields (bedrooms/sqft/amenities for PROPERTY,
     // mileage/make/model/year for VEHICLE, ...). Valid keys and types per
     // category are declared in CategorySchemaRegistry, which is what the

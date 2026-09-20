@@ -198,6 +198,7 @@ public class ListingController {
             @RequestParam(required = false) BigDecimal priceMin,
             @RequestParam(required = false) BigDecimal priceMax,
             @RequestParam(required = false) String location,
+            @RequestParam(required = false) Boolean verifiedOnly,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "12") int size,
             @RequestParam Map<String, String> allParams) {
@@ -208,6 +209,7 @@ public class ListingController {
                 .priceMin(priceMin)
                 .priceMax(priceMax)
                 .location(location)
+                .verifiedOnly(verifiedOnly)
                 .attributeFilters(extractAttributeFilters(allParams))
                 .page(page)
                 .size(size)

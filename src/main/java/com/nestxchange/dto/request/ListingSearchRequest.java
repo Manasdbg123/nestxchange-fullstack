@@ -20,6 +20,7 @@ public record ListingSearchRequest(
         BigDecimal priceMin,
         BigDecimal priceMax,
         String location,
+        Boolean verifiedOnly,
         Map<String, String> attributeFilters,
         int page,
         int size

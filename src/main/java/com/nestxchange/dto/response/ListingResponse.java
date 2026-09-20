@@ -29,6 +29,7 @@ public class ListingResponse {
     private BigDecimal price;
     private String location;
     private ListingStatus status;
+    private boolean verified;
     private Map<String, Object> attributes;
     @Builder.Default
     private List<ListingImageResponse> images = List.of();

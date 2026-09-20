@@ -27,13 +27,6 @@ const MyListings = lazy(() => import('./pages/MyListings'));
 const ListingFavorites = lazy(() => import('./pages/ListingFavorites'));
 const SentInquiries = lazy(() => import('./pages/SentInquiries'));
 const ListingDetails = lazy(() => import('./pages/ListingDetails'));
-const PropertyDetails = lazy(() => import('./pages/PropertyDetails'));
-const ListYourProperty = lazy(() => import('./pages/ListYourProperty'));
-const PostProperty = lazy(() => import('./pages/PostProperty'));
-const EditProperty = lazy(() => import('./pages/EditProperty'));
-const MyProperties = lazy(() => import('./pages/MyProperties'));
-const Shortlist = lazy(() => import('./pages/Shortlist'));
-const Visits = lazy(() => import('./pages/Visits'));
 const Contact = lazy(() => import('./pages/Contact'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const TermsOfUse = lazy(() => import('./pages/TermsOfUse'));
@@ -73,14 +66,10 @@ export default function App() {
                                 same unified backend underneath. */}
                             <Route path="/properties" element={<Properties />} />
                             <Route path="/vehicles" element={<Vehicles />} />
+                            {/* Listing pages are public - no visitor has to sign up
+                                to see one, and owner contact details are gated
+                                on the detail page itself, not the route. */}
                             <Route path="/listings/:id" element={<ListingDetails />} />
-                            {/* Listing pages are public. They used to sit behind a
-                                login wall, which meant no visitor could see a
-                                property before signing up and no search engine
-                                could index one. Owner contact details are still
-                                gated on the detail page itself. */}
-                            <Route path="/property/:id" element={<PropertyDetails />} />
-                            <Route path="/list-your-property" element={<ListYourProperty />} />
                             <Route path="/contact" element={<Contact />} />
                             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                             <Route path="/terms-of-use" element={<TermsOfUse />} />
@@ -126,47 +115,6 @@ export default function App() {
                                     </ProtectedRoute>
                                 }
                             />
-                            <Route
-                                path="/post-property"
-                                element={
-                                    <ProtectedRoute>
-                                        <PostProperty />
-                                    </ProtectedRoute>
-                                }
-                            />
-                            <Route
-                                path="/property/:id/edit"
-                                element={
-                                    <ProtectedRoute>
-                                        <EditProperty />
-                                    </ProtectedRoute>
-                                }
-                            />
-                            <Route
-                                path="/my-properties"
-                                element={
-                                    <ProtectedRoute>
-                                        <MyProperties />
-                                    </ProtectedRoute>
-                                }
-                            />
-                            <Route
-                                path="/shortlist"
-                                element={
-                                    <ProtectedRoute>
-                                        <Shortlist />
-                                    </ProtectedRoute>
-                                }
-                            />
-                            <Route
-                                path="/visits"
-                                element={
-                                    <ProtectedRoute>
-                                        <Visits />
-                                    </ProtectedRoute>
-                                }
-                            />
-
                             {/* An unknown URL previously rendered a blank page. */}
                             <Route path="*" element={<NotFound />} />
                         </Routes>

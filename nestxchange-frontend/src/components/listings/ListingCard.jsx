@@ -5,7 +5,7 @@ import { Badge } from '../ui/Primitives';
 import { formatCurrency, formatNumber, formatRelative, humanise } from '../../lib/format';
 import { LISTING_CATEGORIES, LISTING_STATUS_BADGES } from '../../lib/constants';
 
-/** Shown for a listing with no photos yet - the same pattern PropertyCard uses for a missing/broken image. */
+/** Shown for a listing with no photos yet, or while one is loading. */
 const PLACEHOLDER_IMAGE = {
     PROPERTY: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=800',
     VEHICLE: 'https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&q=80&w=800',
@@ -63,6 +63,11 @@ export default function ListingCard({ listing, isFavorited, onToggleFavorite }) 
                     <Badge tone="muted" icon={categoryEntry?.icon}>
                         {humanise(listing.mode)}
                     </Badge>
+                    {listing.verified ? (
+                        <Badge tone="success" icon="shield">
+                            Verified
+                        </Badge>
+                    ) : null}
                 </div>
                 {statusBadge && listing.status !== 'AVAILABLE' ? (
                     <div className="absolute right-3 top-3">

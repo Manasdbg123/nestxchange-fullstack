@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import Icon from '../ui/Icon';
 import ListingCard from './ListingCard';
 import { Alert, EmptyState, Field, Spinner } from '../ui/Primitives';
-import Pagination from '../property/Pagination';
+import Pagination from './Pagination';
 import useAsync from '../../hooks/useAsync';
 import useListingFavorites from '../../hooks/useListingFavorites';
 import { listingApi } from '../../api/endpoints';

@@ -14,10 +14,9 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Shortlist toggling for the generic Listing engine - the equivalent of
- * {@code PropertyServiceImpl.toggleFavorite}, but for any category. Kept as
- * its own service (not folded into {@link ListingService}) the same way
- * favoriting is its own concern on the legacy Property side.
+ * Shortlist toggling for the generic Listing engine, covering every
+ * category. Kept as its own service rather than folded into
+ * {@link ListingService} since favoriting is its own concern.
  */
 @Service
 @RequiredArgsConstructor

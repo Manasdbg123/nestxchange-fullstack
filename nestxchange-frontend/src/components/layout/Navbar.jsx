@@ -209,15 +209,6 @@ export default function Navbar() {
                                     <MenuLink to="/my-inquiries" icon="mail" onSelect={() => setAccountOpen(false)}>
                                         My inquiries
                                     </MenuLink>
-                                    <MenuLink to="/my-properties" icon="building" onSelect={() => setAccountOpen(false)}>
-                                        My properties (legacy)
-                                    </MenuLink>
-                                    <MenuLink to="/shortlist" icon="heart" onSelect={() => setAccountOpen(false)}>
-                                        Property shortlist (legacy)
-                                    </MenuLink>
-                                    <MenuLink to="/visits" icon="calendar" onSelect={() => setAccountOpen(false)}>
-                                        Site visits (legacy)
-                                    </MenuLink>
 
                                     <button
                                         type="button"

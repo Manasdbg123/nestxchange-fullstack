@@ -19,11 +19,9 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Photo management for the generic Listing engine, reusing the same
- * {@link CloudinaryService} the legacy Property flow uses - not a second
- * upload integration. Every mutating method here enforces ownership itself
- * (not delegated to a controller-level check), the same pattern
- * {@code ListingService} uses.
+ * Photo management for the generic Listing engine. Every mutating method
+ * here enforces ownership itself (not delegated to a controller-level
+ * check), the same pattern {@code ListingService} uses.
  */
 @Service
 @RequiredArgsConstructor
