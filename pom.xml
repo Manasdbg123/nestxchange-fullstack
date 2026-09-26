@@ -23,6 +23,9 @@
 		<jjwt.version>0.12.6</jjwt.version>
 		<springdoc.version>2.8.6</springdoc.version>
 		<cloudinary.version>1.33.0</cloudinary.version>
+		<!-- Newer than Spring Boot 3.5's managed 11.7, which predates PostgreSQL 18
+		     and warns on every startup against the production database. -->
+		<flyway.version>11.20.3</flyway.version>
 	</properties>
 
 	<dependencies>

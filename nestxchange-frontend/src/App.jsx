@@ -4,6 +4,7 @@ import { Route, Routes } from 'react-router-dom';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 import ScrollToTop from './components/layout/ScrollToTop';
+import ServerWakeNotice from './components/layout/ServerWakeNotice';
 import ErrorBoundary from './components/layout/ErrorBoundary';
 import AuthModal from './components/auth/AuthModal';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -46,6 +47,7 @@ export default function App() {
     return (
         <div className="flex min-h-screen flex-col">
             <ScrollToTop />
+            <ServerWakeNotice />
             <Navbar />
 
             {/* Target of the "skip to content" link in the navigation. */}

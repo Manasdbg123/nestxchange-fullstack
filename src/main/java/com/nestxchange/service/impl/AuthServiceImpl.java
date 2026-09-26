@@ -12,6 +12,7 @@ import com.nestxchange.exception.BusinessValidationException;
 import com.nestxchange.exception.ResourceNotFoundException;
 import com.nestxchange.repository.PasswordResetTokenRepository;
 import com.nestxchange.repository.UserRepository;
+import com.nestxchange.security.AccountAttemptLimiter;
 import com.nestxchange.security.JwtTokenProvider;
 import com.nestxchange.security.UserPrincipal;
 import com.nestxchange.service.AuthService;
@@ -22,6 +23,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,6 +52,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final EmailService emailService;
+    private final AccountAttemptLimiter attemptLimiter;
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Value("${app.frontend-url:http://localhost:5173}")
@@ -57,8 +60,18 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse login(LoginRequest request) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(normaliseEmail(request.getEmail()), request.getPassword()));
+        String email = normaliseEmail(request.getEmail());
+        attemptLimiter.checkAllowed(AccountAttemptLimiter.Kind.FAILED_LOGIN, email);
+
+        Authentication authentication;
+        try {
+            authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(email, request.getPassword()));
+        } catch (AuthenticationException ex) {
+            attemptLimiter.record(AccountAttemptLimiter.Kind.FAILED_LOGIN, email);
+            throw ex;
+        }
+        attemptLimiter.reset(AccountAttemptLimiter.Kind.FAILED_LOGIN, email);
 
         // Note: the SecurityContext is deliberately NOT populated here. This is a
         // stateless API - the caller authenticates each request with the token
@@ -115,6 +128,10 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void forgotPassword(ForgotPasswordRequest request) {
         String email = normaliseEmail(request.getEmail());
+        // Counted before the lookup, so the limit behaves the same for unknown
+        // addresses and can't be used to tell them apart.
+        attemptLimiter.checkAllowed(AccountAttemptLimiter.Kind.RESET_REQUEST, email);
+        attemptLimiter.record(AccountAttemptLimiter.Kind.RESET_REQUEST, email);
         Optional<User> user = userRepository.findByEmail(email);
 
         // A different outcome for "no such user" would let a caller enumerate
@@ -125,6 +142,9 @@ public class AuthServiceImpl implements AuthService {
             log.info("Password reset requested for unknown email");
             return;
         }
+
+        // Only the newest link works: requesting another retires the earlier ones.
+        passwordResetTokenRepository.markAllUsedForUser(user.get().getId());
 
         String rawToken = generateToken();
         PasswordResetToken resetToken = PasswordResetToken.builder()
@@ -159,10 +179,15 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", resetToken.getUserId()));
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        // Signs out every existing session: JwtAuthenticationFilter rejects tokens
+        // issued before this moment, including any held by whoever knew the old password.
+        user.setPasswordChangedAt(LocalDateTime.now());
         userRepository.save(user);
 
         resetToken.setUsed(true);
         passwordResetTokenRepository.save(resetToken);
+        // Any other link still in the user's inbox dies with this one.
+        passwordResetTokenRepository.markAllUsedForUser(resetToken.getUserId());
 
         log.info("Password reset completed for user id={}", user.getId());
     }

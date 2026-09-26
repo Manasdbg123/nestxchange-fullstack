@@ -11,11 +11,75 @@ const baseURL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8081/api/
 
 export const TOKEN_STORAGE_KEY = 'nestxchange.token';
 
+/*
+ * Generous on purpose. The API runs on a free instance that sleeps when idle,
+ * and a cold start (JVM boot plus migrations) takes 40-60 seconds. A 20 s
+ * timeout turned every first visit after a quiet spell into an error page.
+ */
+const REQUEST_TIMEOUT_MS = 90000;
+
+/** A request still pending after this long is probably waiting on a cold start. */
+const SLOW_REQUEST_MS = 4000;
+
 const api = axios.create({
     baseURL,
     headers: { 'Content-Type': 'application/json' },
-    timeout: 20000,
+    timeout: REQUEST_TIMEOUT_MS,
 });
+
+/*
+ * Slow-request tracking, so the UI can say "the server is starting" instead of
+ * showing a spinner for a minute with no explanation. Components subscribe with
+ * useSyncExternalStore (see ServerWakeNotice).
+ */
+let slowRequests = 0;
+const slowListeners = new Set();
+
+function setSlow(delta) {
+    slowRequests = Math.max(0, slowRequests + delta);
+    slowListeners.forEach((listener) => listener());
+}
+
+export function subscribeSlowRequests(listener) {
+    slowListeners.add(listener);
+    return () => slowListeners.delete(listener);
+}
+
+export function isWaitingOnServer() {
+    return slowRequests > 0;
+}
+
+function trackSlow(config) {
+    config.metadata = { slowTimer: null, markedSlow: false };
+    config.metadata.slowTimer = setTimeout(() => {
+        config.metadata.markedSlow = true;
+        setSlow(1);
+    }, SLOW_REQUEST_MS);
+}
+
+function settleSlow(config) {
+    if (!config?.metadata) return;
+    clearTimeout(config.metadata.slowTimer);
+    if (config.metadata.markedSlow) setSlow(-1);
+    config.metadata = null;
+}
+
+/**
+ * Nudge a sleeping backend awake as soon as the page loads, so it is usually
+ * ready by the time the visitor searches or signs in. Fire-and-forget.
+ */
+export function warmUpServer() {
+    try {
+        const healthUrl = new URL(baseURL, window.location.href);
+        healthUrl.pathname = '/actuator/health';
+        healthUrl.search = '';
+        // no-cors: the response is never read, only the request matters, so no
+        // CORS rule is needed and nothing is logged if the origin is not allowed.
+        fetch(healthUrl, { mode: 'no-cors', cache: 'no-store' }).catch(() => {});
+    } catch {
+        /* A malformed base URL shows up on the first real request instead. */
+    }
+}
 
 export function readToken() {
     try {
@@ -37,6 +101,7 @@ export function writeToken(token) {
 }
 
 api.interceptors.request.use((config) => {
+    trackSlow(config);
     const token = readToken();
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
@@ -61,8 +126,12 @@ export function onUnauthorized(handler) {
 }
 
 api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        settleSlow(response.config);
+        return response;
+    },
     (error) => {
+        settleSlow(error.config);
         if (error.response?.status === 401 && readToken()) {
             writeToken(null);
             unauthorizedHandlers.forEach((handler) => handler());
@@ -80,7 +149,7 @@ api.interceptors.response.use(
  */
 export function toErrorMessage(error, fallback = 'Something went wrong. Please try again.') {
     if (error?.code === 'ECONNABORTED') {
-        return 'The request timed out. Please check your connection and try again.';
+        return 'The server took too long to respond. Please try again in a moment.';
     }
     if (error?.response) {
         const { message, fieldErrors } = error.response.data ?? {};
