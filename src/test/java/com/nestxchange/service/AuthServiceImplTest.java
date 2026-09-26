@@ -1,6 +1,7 @@
 package com.nestxchange.service;
 
 import com.nestxchange.dto.request.ForgotPasswordRequest;
+import com.nestxchange.dto.request.LoginRequest;
 import com.nestxchange.dto.request.RegisterRequest;
 import com.nestxchange.dto.request.ResetPasswordRequest;
 import com.nestxchange.dto.response.AuthResponse;
@@ -57,13 +58,16 @@ class AuthServiceImplTest {
     @Mock
     private com.nestxchange.service.EmailService emailService;
 
+    @Mock
+    private com.nestxchange.security.AccountAttemptLimiter attemptLimiter;
+
     private AuthServiceImpl authService;
 
     @BeforeEach
     void setUp() {
         PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(4); // low cost keeps the test fast
         authService = new AuthServiceImpl(authenticationManager, tokenProvider, userRepository, passwordEncoder,
-                passwordResetTokenRepository, emailService);
+                passwordResetTokenRepository, emailService, attemptLimiter);
         ReflectionTestUtils.setField(authService, "frontendUrl", "http://localhost:5173");
 
         when(tokenProvider.generateToken(any(UserPrincipal.class))).thenReturn("signed.jwt.token");
@@ -177,6 +181,8 @@ class AuthServiceImplTest {
         // The raw token must never be persisted - only its hash.
         assertThat(saved.getValue().getTokenHash()).hasSize(64); // SHA-256 as hex
         assertThat(saved.getValue().isUsed()).isFalse();
+        // Earlier links are retired, so only the newest email works.
+        verify(passwordResetTokenRepository).markAllUsedForUser(7L);
 
         verify(emailService).send(anyString(), anyString(), anyString());
     }
@@ -248,6 +254,47 @@ class AuthServiceImplTest {
         ArgumentCaptor<PasswordResetToken> savedToken = ArgumentCaptor.forClass(PasswordResetToken.class);
         verify(passwordResetTokenRepository).save(savedToken.capture());
         assertThat(savedToken.getValue().isUsed()).isTrue();
+    }
+
+    @Test
+    @DisplayName("resetPassword records the change time and retires every other reset link")
+    void resetPasswordSignsOutOldSessionsAndLinks() {
+        PasswordResetToken valid = PasswordResetToken.builder()
+                .id(1L).userId(7L).tokenHash("irrelevant-in-this-test")
+                .expiresAt(LocalDateTime.now().plusMinutes(10))
+                .used(false)
+                .build();
+        when(passwordResetTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(valid));
+        User user = User.builder().id(7L).name("Asha").email("asha@example.com").password("old-hash").build();
+        when(userRepository.findById(7L)).thenReturn(Optional.of(user));
+
+        ResetPasswordRequest request = new ResetPasswordRequest();
+        request.setToken("some-token");
+        request.setNewPassword("NewPass123");
+        LocalDateTime before = LocalDateTime.now();
+
+        authService.resetPassword(request);
+
+        // JwtAuthenticationFilter rejects tokens issued before this timestamp.
+        assertThat(user.getPasswordChangedAt()).isNotNull().isAfterOrEqualTo(before);
+        verify(passwordResetTokenRepository).markAllUsedForUser(7L);
+    }
+
+    @Test
+    @DisplayName("a failed sign-in is counted against the account; a successful one clears the count")
+    void loginCountsFailuresPerAccount() {
+        when(authenticationManager.authenticate(any()))
+                .thenThrow(new org.springframework.security.authentication.BadCredentialsException("bad"));
+        LoginRequest request = new LoginRequest();
+        request.setEmail("Asha@Example.com");
+        request.setPassword("wrong");
+
+        assertThatThrownBy(() -> authService.login(request))
+                .isInstanceOf(org.springframework.security.authentication.BadCredentialsException.class);
+
+        verify(attemptLimiter).checkAllowed(com.nestxchange.security.AccountAttemptLimiter.Kind.FAILED_LOGIN, "asha@example.com");
+        verify(attemptLimiter).record(com.nestxchange.security.AccountAttemptLimiter.Kind.FAILED_LOGIN, "asha@example.com");
+        verify(attemptLimiter, never()).reset(any(), anyString());
     }
 
     private RegisterRequest newRequest() {

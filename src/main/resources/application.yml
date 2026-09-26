@@ -35,9 +35,10 @@ spring:
     # with what the migrations created instead of mutating tables at boot.
     hibernate:
       ddl-auto: ${DDL_AUTO:validate}
+    # No explicit dialect: Hibernate detects it from the JDBC connection (and warns
+    # when one is set). To point at another engine, set SPRING_JPA_DATABASE_PLATFORM.
     properties:
       hibernate:
-        dialect: ${DB_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
         jdbc:
           batch_size: 25
         order_inserts: true

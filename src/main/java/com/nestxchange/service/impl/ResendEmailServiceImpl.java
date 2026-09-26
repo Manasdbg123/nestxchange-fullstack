@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nestxchange.service.EmailService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import com.nestxchange.config.AsyncConfig;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -47,7 +49,14 @@ public class ResendEmailServiceImpl implements EmailService {
         this.fromAddress = fromAddress;
     }
 
+    /**
+     * Runs on the mail executor, never on the request thread. Besides not making
+     * the user wait on Resend, this keeps "forgot password" equally fast whether or
+     * not the account exists - a slower answer for real accounts would reveal
+     * which emails are registered.
+     */
     @Override
+    @Async(AsyncConfig.MAIL_EXECUTOR)
     public void send(String toEmail, String subject, String htmlBody) {
         if (!StringUtils.hasText(apiKey)) {
             log.warn("No RESEND_API_KEY configured - logging email instead of sending. To: {} Subject: {}\n{}",

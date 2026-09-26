@@ -116,8 +116,12 @@ export function Modal({ open, onClose, title, description, children, size = 'md'
     const panelRef = useRef(null);
     const previouslyFocused = useRef(null);
     const titleId = useId();
+    // The latest onClose, read by the keydown handler without re-running the
+    // open/close effect (which would steal focus back on every parent render).
     const onCloseRef = useRef(onClose);
-    onCloseRef.current = onClose;
+    useEffect(() => {
+        onCloseRef.current = onClose;
+    }, [onClose]);
 
     useEffect(() => {
         if (!open) return undefined;

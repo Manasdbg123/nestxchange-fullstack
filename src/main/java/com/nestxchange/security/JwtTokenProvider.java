@@ -19,6 +19,7 @@ import org.springframework.util.StringUtils;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.Date;
 
@@ -111,6 +112,10 @@ public class JwtTokenProvider {
 
     public long getExpirationInMs() {
         return jwtExpirationInMs;
+    }
+
+    public Instant getIssuedAt(String token) {
+        return parse(token).getIssuedAt().toInstant();
     }
 
     public Long getUserIdFromJWT(String token) {

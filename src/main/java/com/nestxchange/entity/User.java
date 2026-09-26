@@ -51,6 +51,12 @@ public class User {
     @Column(nullable = false, length = 20)
     private Role role;
 
+    /**
+     * When the password last changed. Tokens issued before this are rejected, so
+     * resetting a password signs out every existing session.
+     */
+    private LocalDateTime passwordChangedAt;
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;
